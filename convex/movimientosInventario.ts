@@ -16,6 +16,7 @@ const movimientoValidator = v.object({
   existenciaAnterior: v.number(),
   existenciaResultante: v.number(),
   motivo: v.string(),
+  claveIdempotencia: v.optional(v.string()),
   creadoEn: v.number(),
   productoSku: v.string(),
   productoNombre: v.string(),
