@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Configuración de agentes de IA
+/.agents/
+/.claude/
+/.pnpm-store/
+/skills-lock.json
+docs/00-actividad-actual.md
