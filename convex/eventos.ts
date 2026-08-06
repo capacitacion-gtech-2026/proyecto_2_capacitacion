@@ -17,6 +17,10 @@ export const procesarMovimientoInventarioRegistrado = internalMutation({
       throw new ConvexError("El tipo de evento no es válido.");
     }
 
+    if (evento.estado === "procesado") {
+      return null;
+    }
+
     const producto = await ctx.db.get("productos", evento.productoId);
 
     if (!producto) {
