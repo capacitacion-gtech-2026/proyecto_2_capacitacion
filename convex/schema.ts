@@ -15,4 +15,16 @@ export default defineSchema({
     .index("por_sku", ["sku"])
     .index("por_activo", ["activo"])
     .index("por_actualizado_en", ["actualizadoEn"]),
+
+  movimientosInventario: defineTable({
+    productoId: v.id("productos"),
+    tipo: v.union(v.literal("entrada"), v.literal("salida")),
+    cantidad: v.number(),
+    existenciaAnterior: v.number(),
+    existenciaResultante: v.number(),
+    motivo: v.string(),
+    creadoEn: v.number(),
+  })
+    .index("por_producto_creado_en", ["productoId", "creadoEn"])
+    .index("por_creado_en", ["creadoEn"]),
 });
