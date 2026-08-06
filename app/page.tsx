@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Boxes, Package } from "lucide-react";
+import { ArrowRight, ArrowUpDown, Boxes, Package } from "lucide-react";
 
 export default function Home() {
   return (
@@ -32,24 +32,39 @@ export default function Home() {
           <p className="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-600">
             Módulos
           </p>
-          <Link
-            href="/productos"
-            className="group flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[#111318] p-5 transition-colors hover:border-white/[0.14] hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60"
-          >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
-              <Package className="size-5" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-medium text-zinc-200">Productos</h2>
-              <p className="mt-1 text-sm text-zinc-600">
-                Registra productos y consulta existencias.
-              </p>
-            </div>
-            <span className="flex items-center gap-2 text-sm text-zinc-500 transition-colors group-hover:text-zinc-200">
-              Abrir
-              <ArrowRight className="size-4" />
-            </span>
-          </Link>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Link
+              href="/productos"
+              className="group flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[#111318] p-5 transition-colors hover:border-white/[0.14] hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60"
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
+                <Package className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-medium text-zinc-200">Productos</h2>
+                <p className="mt-1 text-sm text-zinc-600">
+                  Registra productos y consulta existencias.
+                </p>
+              </div>
+              <ArrowRight className="size-4 text-zinc-500 transition-colors group-hover:text-zinc-200" />
+            </Link>
+
+            <Link
+              href="/movimientos"
+              className="group flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[#111318] p-5 transition-colors hover:border-white/[0.14] hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60"
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+                <ArrowUpDown className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-medium text-zinc-200">Movimientos</h2>
+                <p className="mt-1 text-sm text-zinc-600">
+                  Registra entradas, salidas y consulta el historial.
+                </p>
+              </div>
+              <ArrowRight className="size-4 text-zinc-500 transition-colors group-hover:text-zinc-200" />
+            </Link>
+          </div>
         </div>
       </main>
     </div>
