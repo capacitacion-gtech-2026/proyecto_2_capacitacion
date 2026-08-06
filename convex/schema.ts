@@ -23,9 +23,11 @@ export default defineSchema({
     existenciaAnterior: v.number(),
     existenciaResultante: v.number(),
     motivo: v.string(),
+    claveIdempotencia: v.optional(v.string()),
     creadoEn: v.number(),
   })
     .index("por_producto_creado_en", ["productoId", "creadoEn"])
+    .index("por_clave_idempotencia", ["claveIdempotencia"])
     .index("por_creado_en", ["creadoEn"]),
 
   eventosDominio: defineTable({

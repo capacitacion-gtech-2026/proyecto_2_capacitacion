@@ -38,9 +38,53 @@ export const registrar = mutation({
     tipo: tipoMovimientoValidator,
     cantidad: v.number(),
     motivo: v.string(),
+    claveIdempotencia: v.string(),
   },
   returns: resultadoRegistroValidator,
   handler: async (ctx, args) => {
+    const claveIdempotencia = args.claveIdempotencia.trim();
+
+    if (!claveIdempotencia) {
+      throw new ConvexError("La clave de idempotencia es obligatoria.");
+    }
+
+    const motivo = args.motivo.trim();
+
+    if (!motivo) {
+      throw new ConvexError("El motivo es obligatorio.");
+    }
+
+    const movimientoExistente = await ctx.db
+      .query("movimientosInventario")
+      .withIndex("por_clave_idempotencia", (q) =>
+        q.eq("claveIdempotencia", claveIdempotencia),
+      )
+      .first();
+
+    if (movimientoExistente) {
+      if (
+        movimientoExistente.productoId === args.productoId &&
+        movimientoExistente.tipo === args.tipo &&
+        movimientoExistente.cantidad === args.cantidad &&
+        movimientoExistente.motivo === motivo
+      ) {
+        return {
+          id: movimientoExistente._id,
+          productoId: movimientoExistente.productoId,
+          tipo: movimientoExistente.tipo,
+          cantidad: movimientoExistente.cantidad,
+          existenciaAnterior: movimientoExistente.existenciaAnterior,
+          existenciaResultante: movimientoExistente.existenciaResultante,
+          motivo: movimientoExistente.motivo,
+          creadoEn: movimientoExistente.creadoEn,
+        };
+      } else {
+        throw new ConvexError(
+          "La clave de idempotencia ya fue utilizada con datos diferentes.",
+        );
+      }
+    }
+
     const producto = await ctx.db.get("productos", args.productoId);
 
     if (!producto) {
@@ -55,12 +99,6 @@ export const registrar = mutation({
 
     if (!Number.isInteger(args.cantidad) || args.cantidad <= 0) {
       throw new ConvexError("Ingresa una cantidad entera mayor que cero.");
-    }
-
-    const motivo = args.motivo.trim();
-
-    if (!motivo) {
-      throw new ConvexError("El motivo es obligatorio.");
     }
 
     if (
@@ -84,6 +122,7 @@ export const registrar = mutation({
       existenciaAnterior,
       existenciaResultante,
       motivo,
+      claveIdempotencia,
       creadoEn,
     });
 

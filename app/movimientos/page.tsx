@@ -76,6 +76,9 @@ export default function MovimientosPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [claveIdempotencia, setClaveIdempotencia] = useState(() =>
+    crypto.randomUUID(),
+  );
 
   const productos = useQuery(api.productos.listar);
   const movimientos = useQuery(
@@ -107,6 +110,13 @@ export default function MovimientosPage() {
   );
   const estaCargando = productos === undefined || movimientos === undefined;
 
+  const manejarCambioFormulario = () => {
+    if (submitError) {
+      setSubmitError(null);
+    }
+    setClaveIdempotencia(crypto.randomUUID());
+  };
+
   const onSubmit = async (data: MovimientoFormValues) => {
     setSubmitError(null);
     setSubmitSuccess(null);
@@ -118,6 +128,7 @@ export default function MovimientosPage() {
         tipo: data.tipo,
         cantidad: data.cantidad,
         motivo: data.motivo,
+        claveIdempotencia,
       });
 
       const producto = productos?.find(
@@ -127,6 +138,7 @@ export default function MovimientosPage() {
         `${data.tipo === "entrada" ? "Entrada" : "Salida"} registrada para ${producto?.nombre ?? "el producto"}. Existencia resultante: ${resultado.existenciaResultante}.`,
       );
       reset(FORM_DEFAULTS);
+      setClaveIdempotencia(crypto.randomUUID());
     } catch (error: unknown) {
       setSubmitError(obtenerMensajeError(error));
     } finally {
@@ -264,6 +276,7 @@ export default function MovimientosPage() {
 
                 <form
                   onSubmit={handleSubmit(onSubmit)}
+                  onChange={manejarCambioFormulario}
                   aria-busy={isSubmitting}
                   className="space-y-5"
                 >
