@@ -1,10 +1,11 @@
 # BE-003: Flujo EDA de movimientos y alertas
 
-> **Tipo:** Backend  
-> **Feature:** F-3.1, F-3.3  
-> **ACs cubiertos:** F-3.1 AC1-AC6; F-3.3 AC1-AC6  
-> **Status:** draft  
+> **Tipo:** Backend
+> **Feature:** F-3.1, F-3.3
+> **ACs cubiertos:** F-3.1 AC1-AC6; F-3.3 AC1-AC6
+> **Status:** draft
 > **Dependencias:** DA-001, BE-002, NF-001, NF-002
+> **Architecture ref:** ARCH-inventario, AD-3, AD-4 y AD-5
 
 ## Qué hace
 
@@ -220,7 +221,21 @@ Una alerta nueva guardará como mínimo:
 | `ALERTA_NO_ENCONTRADA` | No existe la alerta enviada a resolución manual. | La mutation informa el error sin modificar datos. |
 | `ALERTA_YA_RESUELTA` | Se intenta resolver manualmente una alerta resuelta. | La mutation termina sin modificar la alerta. |
 
-## Tests asociados
+## Contexto para el agente
+
+Leer `docs/02-architecture.md` AD-3 a AD-5, `DA-001`, `BE-002` y `NF-001`. Esta Spec pertenece a la fase 3: no debe implementarse como parte de la primera unidad de productos.
+
+## Definition of Done
+
+- [ ] Un movimiento confirmado guarda un solo evento y programa su consumidor.
+- [ ] El consumidor es interno e idempotente.
+- [ ] Solo puede existir una alerta activa de stock bajo por producto.
+- [ ] La resolución automática y manual conserva el historial.
+- [ ] Un fallo del consumidor no revierte ni repite el movimiento confirmado.
+- [ ] Las verificaciones asociadas fueron ejecutadas y registradas.
+- [ ] La Spec fue revisada y aprobada por el responsable humano.
+
+## Verificaciones asociadas
 
 Los IDs identifican pruebas que deberán crearse durante la implementación. En este momento todavía no existen.
 
@@ -235,3 +250,8 @@ Los IDs identifican pruebas que deberán crearse durante la implementación. En 
 | TC-BE-003-07 | Un movimiento posterior a resolución manual puede crear otra alerta | Integración |
 | TC-BE-003-08 | Un fallo del consumidor no revierte ni repite el movimiento | Integración |
 | TC-BE-003-09 | El consumidor no puede invocarse directamente desde el cliente | Seguridad |
+
+## Changelog
+
+- v1.1 (2026-08-05): Se normalizó la cabecera y se añadieron contexto, fase y Definition of Done conforme al formato Fractik actualizado.
+- v1.0 (2026-08-05): Borrador inicial del flujo EDA y alertas.

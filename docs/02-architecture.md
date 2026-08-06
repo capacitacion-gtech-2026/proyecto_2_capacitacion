@@ -1,18 +1,30 @@
 # Architecture: Sistema de Gestión de Inventario
 
 > **ID:** ARCH-inventario
-> **Versión:** 1
-> **Fecha:** 2026-08-03
+> **Versión:** 1.1
+> **Fecha:** 2026-08-05
 > **Autor:** Angel Yahir Murillo Gallegos
-> **Vision padre:** V-inventario
+> **Status:** draft
+> **Padre:** V-inventario
 
 ---
 
 ## 1. Stack
 
-Esta arquitectura describe cómo se propone construir la primera versión del sistema. Las tecnologías, estructuras y patrones todavía deberán aplicarse y validarse durante el desarrollo.
+Esta arquitectura describe la solución completa prevista y distingue lo que ya existe de lo que corresponde a unidades posteriores. La primera unidad implementa únicamente el catálogo de productos; movimientos, eventos y alertas permanecen como arquitectura objetivo.
 
 El alcance se limita a un sistema demostrativo de un solo almacén, sin autenticación, con alertas internas y un flujo EDA formado por un productor, un evento y un consumidor.
+
+### Estado por unidad
+
+| Unidad | Estado arquitectónico | Elementos |
+|---|---|---|
+| 1 — Catálogo de productos | Implementada, pendiente de revisión humana | Next.js App Router, Convex, tabla `productos`, `productos.crear`, `productos.listar` y página `/productos`. |
+| 2 — Movimientos | Objetivo futuro | Entradas, salidas, historial y actualización controlada de existencia. |
+| 3 — Eventos y alertas | Objetivo futuro | `MovimientoInventarioRegistrado`, consumidor interno y alertas de stock bajo. |
+| 4 — Consulta general | Objetivo futuro | Panel de inventario y consolidación del flujo. |
+
+Los fragmentos y diagramas relacionados con las unidades 2–4 son contratos propuestos, no evidencia de que esas funciones ya estén implementadas.
 
 | Capa | Tecnología | Por qué (para este producto) |
 |---|---|---|
@@ -78,7 +90,7 @@ flowchart TD
 ### AD-5: Un solo evento y un solo consumidor en la primera versión
 
 - **Contexto:** Incluir diferentes eventos, consumidores, reintentos avanzados y notificaciones externas pondría en riesgo la entrega.
-- **Decisión:** La primera versión tendrá únicamente `MovimientoInventarioRegistrado` y `procesarMovimientoInventarioRegistrado`. El evento usará los estados `pendiente`, `procesado` y `fallido`.
+- **Decisión:** La primera versión tendrá únicamente `MovimientoInventarioRegistrado` y `procesarMovimientoInventarioRegistrado`. El evento de dominio usará los estados `pendiente` y `procesado`; los fallos técnicos se observarán en los logs y en las funciones programadas de Convex.
 - **Alternativas descartadas:** Agregar eventos separados para entrada, salida, creación de producto y alerta, porque no son necesarios para validar el flujo principal. Implementar reintentos con espera incremental, porque aumentaría la lógica y las pruebas requeridas.
 - **Consecuencias:** El ejemplo EDA será pequeño y explicable. Los reintentos automáticos y nuevos consumidores quedarán como evolución futura.
 
@@ -106,53 +118,43 @@ Los patrones de esta sección son propuestas para orientar la implementación. L
 
 ```text
 sistema-inventario/
-├── src/
-│   ├── app/
-│   │   ├── layout.tsx                    # Layout raíz y proveedor de Convex
-│   │   ├── page.tsx                      # Panel principal
-│   │   ├── productos/
-│   │   │   ├── page.tsx                  # Catálogo de productos
-│   │   │   └── [productoId]/page.tsx     # Detalle e historial del producto
-│   │   ├── movimientos/
-│   │   │   ├── page.tsx                  # Historial de movimientos
-│   │   │   └── nuevo/page.tsx            # Registro de entrada o salida
-│   │   └── alertas/page.tsx              # Alertas activas y resueltas
-│   ├── componentes/
-│   │   ├── ui/                            # Componentes de Shadcn/ui
-│   │   ├── productos/                     # Formularios y tablas de productos
-│   │   ├── movimientos/                   # Formulario e historial
-│   │   ├── alertas/                       # Lista e indicador de stock bajo
-│   │   ├── panel/                         # Tarjetas de resumen
-│   │   └── proveedores/                   # Configuración de Convex para React
-│   └── lib/
-│       ├── esquemas/                      # Validaciones Zod de formularios
-│       └── utilidades.ts                  # Funciones auxiliares de interfaz
+├── app/
+│   ├── ConvexClientProvider.tsx           # Proveedor de Convex para React
+│   ├── layout.tsx                         # Layout raíz
+│   ├── page.tsx                           # Página principal
+│   └── productos/
+│       ├── page.tsx                       # Catálogo y registro de productos
+│       └── error.tsx                      # Límite de error de la ruta
+├── components/
+│   └── ui/                                # Componentes de Shadcn/ui
 ├── convex/
 │   ├── schema.ts                          # Tablas e índices
 │   ├── productos.ts                       # Queries y mutations de productos
-│   ├── movimientosInventario.ts           # Registro e historial de movimientos
-│   ├── eventos.ts                         # Productor, consumidor y estado de eventos
-│   └── alertasInventario.ts               # Consultas de alertas
 ├── docs/
-│   ├── 01-vision-inventario.md
-│   └── 02-architecture-inventario.md
+│   ├── 01-vision.md
+│   ├── 02-architecture.md
+│   ├── 03-Product Requirements.md
+│   ├── 04-Spec-Inventory.md
+│   └── specs/
+├── lib/
+│   └── utils.ts                           # Utilidades compartidas de interfaz
 ├── CLAUDE.md
 ├── package.json
 └── pnpm-lock.yaml
 ```
 
-Esta estructura se creará progresivamente. Si durante la implementación una carpeta no resulta necesaria, podrá omitirse y la arquitectura deberá actualizarse al finalizar.
+La estructura anterior corresponde a la primera unidad. Las rutas y módulos futuros solo se crearán cuando se trabaje su fase; no se añadirán carpetas vacías como anticipación.
 
 #### Páginas propuestas
 
-| Ruta | Componente de página | Responsabilidad |
+| Ruta | Responsabilidad | Estado |
 |---|---|---|
-| `/` | `PaginaPanelInventario` | Mostrar existencias, movimientos recientes y alertas activas. |
-| `/productos` | `PaginaProductos` | Mostrar y registrar productos. |
-| `/productos/[productoId]` | `PaginaDetalleProducto` | Mostrar información e historial de un producto. |
-| `/movimientos` | `PaginaMovimientos` | Mostrar entradas y salidas. |
-| `/movimientos/nuevo` | `PaginaNuevoMovimiento` | Registrar una entrada o salida. |
-| `/alertas` | `PaginaAlertas` | Mostrar alertas activas y resueltas. |
+| `/` | Presentar el sistema y dar acceso al catálogo. | Implementada en fase 1 |
+| `/productos` | Mostrar y registrar productos. | Implementada en fase 1 |
+| `/productos/[productoId]` | Mostrar información e historial de un producto. | Futura |
+| `/movimientos` | Mostrar entradas y salidas. | Futura |
+| `/movimientos/nuevo` | Registrar una entrada o salida. | Futura |
+| `/alertas` | Mostrar alertas activas y resueltas. | Futura |
 
 #### Componentes propuestos
 
@@ -283,7 +285,7 @@ Como mínimo se comprobará:
 - Los argumentos públicos se validarán mediante los validadores `v`.
 - Las reglas de negocio se comprobarán dentro de la mutation.
 - Si una validación falla, Convex revertirá las escrituras de la mutation.
-- Un evento que no pueda procesarse se marcará como `fallido`; los reintentos automáticos avanzados quedan fuera de la primera versión.
+- Un evento que no pueda procesarse conservará su estado de dominio y el fallo técnico se revisará en los logs y en `_scheduled_functions`; los reintentos personalizados quedan fuera de la primera versión.
 
 | Código | Situación | Mensaje para la interfaz |
 |---|---|---|
@@ -299,12 +301,6 @@ Como mínimo se comprobará:
 - Los formularios conservarán sus datos cuando una operación falle.
 - Las operaciones correctas mostrarán una confirmación mediante `toast`.
 
-#### Logging
-
-- Los fallos del consumidor incluirán `eventoId`, `movimientoId` y `productoId`.
-- No se registrarán variables de entorno ni datos innecesarios del formulario.
-- La primera versión utilizará los logs de Convex y Vercel; no añadirá otra plataforma de observabilidad.
-
 ### 3.5 Seguridad y auth
 
 La primera versión no tendrá autenticación ni autorización. Esta ausencia es una reducción deliberada del alcance y no un patrón recomendado para un sistema real.
@@ -319,6 +315,14 @@ Se aplicarán las siguientes reglas:
 6. Los secretos y variables de entorno no se incluirán en el repositorio.
 
 Si el proyecto se utiliza posteriormente con inventario real, deberá agregarse autenticación, protección de rutas, autorización en cada función y registro del usuario que realizó cada movimiento.
+
+### 3.6 Logging y observabilidad
+
+- La primera unidad utiliza los errores estructurados de Convex para validaciones de negocio y mensajes comprensibles en la interfaz.
+- Los errores del backend se consultan en los logs del deployment de Convex; los errores de renderizado se revisan en Next.js y Vercel.
+- No se registran variables de entorno, secretos ni contenido innecesario de formularios.
+- Cuando se implemente EDA, cada fallo del consumidor incluirá `eventoId`, `movimientoId` y `productoId` para permitir su trazabilidad.
+- No se incorpora una plataforma adicional de observabilidad en esta versión demostrativa.
 
 ---
 
@@ -450,4 +454,9 @@ El `CLAUDE.md` del repositorio deberá condensar las reglas operativas definidas
 - Las pruebas mínimas cubrirán movimientos, stock insuficiente, producción del evento, alerta e idempotencia del consumidor.
 - Antes de integrar cambios se ejecutarán `pnpm lint`, `pnpm test` y `pnpm build`.
 
-La sección 3 de este documento será la fuente de verdad para la estructura, los nombres y los patrones. Como el sistema todavía se está construyendo, el `CLAUDE.md` se generará cuando exista el repositorio y se actualizará si la implementación final cambia alguna propuesta.
+La sección 3 de este documento es la fuente de verdad para la estructura, los nombres y los patrones. El archivo `CLAUDE.md` ya existe en la raíz y deberá mantenerse alineado con la implementación; las instrucciones específicas de otras herramientas no sustituyen esta arquitectura.
+
+## Changelog
+
+- v1.1 (2026-08-05): Se normalizaron metadatos, se separó la arquitectura implementada de la arquitectura objetivo y se añadió observabilidad explícita.
+- v1.0 (2026-08-03): Arquitectura inicial del sistema completo de inventario.

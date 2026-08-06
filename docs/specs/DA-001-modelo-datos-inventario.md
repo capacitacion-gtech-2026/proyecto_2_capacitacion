@@ -1,13 +1,15 @@
 # DA-001: Modelo de datos del inventario
 
-> **Tipo:** Data  
-> **Feature:** F-1.1, F-1.3, F-2.1, F-2.2, F-2.3, F-3.1, F-3.2, F-3.3  
-> **ACs definidos por esta Spec:** Criterios relacionados con persistencia, relaciones, trazabilidad e integridad de estas features  
+> **Tipo:** Data
+> **Feature:** F-1.1, F-1.3, F-2.1, F-2.2, F-2.3, F-3.1, F-3.2, F-3.3
+> **ACs cubiertos:** Criterios relacionados con persistencia, relaciones, trazabilidad e integridad de estas features
 > **Status:** draft
+> **Dependencias:** Ninguna
+> **Architecture ref:** ARCH-inventario, AD-1 a AD-5 y sección 4
 
 ## Tabla
 
-Esta Spec propone el modelo de datos necesario para controlar productos, movimientos, eventos y alertas en un solo almacén. El schema todavía no existe en Convex; el contenido siguiente define el contrato que deberá implementarse y validarse.
+Esta Spec define el modelo de datos necesario para controlar productos, movimientos, eventos y alertas en un solo almacén. En la primera unidad solamente está implementada la tabla `productos`; las otras tablas permanecen como contrato para fases posteriores.
 
 | Tabla propuesta | Propósito |
 |---|---|
@@ -16,11 +18,20 @@ Esta Spec propone el modelo de datos necesario para controlar productos, movimie
 | `eventosDominio` | Registrar el hecho `MovimientoInventarioRegistrado` que procesará el consumidor. |
 | `alertasInventario` | Conservar alertas activas y resueltas de stock bajo. |
 
+### Estado por fase
+
+| Tabla | Estado | Fase |
+|---|---|---|
+| `productos` | Implementada en `convex/schema.ts`; pendiente de revisión documental | Fase 1 |
+| `movimientosInventario` | Propuesta | Fase 2 |
+| `eventosDominio` | Propuesta | Fase 3 |
+| `alertasInventario` | Propuesta | Fase 3 |
+
 No se propone una tabla de almacenes porque la primera versión operará con un solo almacén. La extensión a múltiples ubicaciones requerirá una nueva versión de esta Spec.
 
 ## Schema
 
-El siguiente schema es una propuesta previa a la implementación. Los nombres deberán conservarse salvo que durante la revisión se identifique una incompatibilidad técnica.
+El siguiente schema representa el objetivo completo. En el código vigente solo debe compararse como implementado el bloque de `productos`; los demás bloques no forman parte de la primera unidad.
 
 ```typescript
 import { defineSchema, defineTable } from "convex/server";
@@ -199,7 +210,23 @@ erDiagram
 
 Los índices facilitan las comprobaciones, pero las reglas de unicidad deberán validarse dentro de las mutations correspondientes.
 
-## Tests asociados
+## Migración
+
+La primera unidad crea la tabla `productos` desde un entorno sin datos previos, por lo que no requiere backfill. Las tablas futuras deberán añadirse sin modificar ni recrear los productos existentes. Cualquier cambio incompatible en campos o índices requerirá una nueva versión de esta Spec antes de ejecutarse sobre datos reales.
+
+## Contexto para el agente
+
+Leer `docs/02-architecture.md` sección 4, `docs/03-Product Requirements.md` F-1.1 y `convex/schema.ts`. Para la primera unidad, implementar únicamente `productos`; no anticipar tablas vacías de movimientos, eventos o alertas.
+
+## Definition of Done
+
+- [x] `productos` define los campos obligatorios y la descripción opcional.
+- [x] Existen índices por SKU, estado activo y actualización.
+- [x] La creación fija la existencia en cero desde la lógica de backend.
+- [ ] Las tablas de movimientos, eventos y alertas se validan en sus fases respectivas.
+- [ ] La Spec fue revisada y aprobada por el responsable humano.
+
+## Verificaciones asociadas
 
 Los siguientes tests deberán escribirse durante la implementación; todavía no existen.
 
@@ -211,3 +238,8 @@ Los siguientes tests deberán escribirse durante la implementación; todavía no
 | TC-DA-001-04 | Un movimiento produce un solo evento | Integración |
 | TC-DA-001-05 | Solo existe una alerta activa por producto | Integración |
 | TC-DA-001-06 | Desactivar un producto conserva sus relaciones | Integración |
+
+## Changelog
+
+- v1.1 (2026-08-05): Se distinguió la tabla implementada en la primera unidad del modelo objetivo y se añadieron migración, contexto y Definition of Done.
+- v1.0 (2026-08-04): Propuesta inicial del modelo de datos completo.

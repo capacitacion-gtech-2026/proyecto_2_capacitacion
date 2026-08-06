@@ -1,16 +1,17 @@
 # Spec Inventory: Sistema de Gestión de Inventario
 
-> **ID:** SPECS-inventario  
-> **Versión:** 1 
-> **Fecha:** 2026-08-04  
-> **Requirements padre:** REQ-inventario  
-> **Architecture padre:** ARCH-inventario
+> **ID:** SPECS-inventario
+> **Versión:** 1.1
+> **Fecha:** 2026-08-05
+> **Autor:** Angel Yahir Murillo Gallegos
+> **Status:** draft
+> **Padres:** REQ-inventario, ARCH-inventario
 
 ---
 
 ## Tipos de Spec
 
-Este inventario corresponde a un proyecto nuevo que todavía no ha sido implementado. Su propósito es identificar las especificaciones que deberán redactarse con FRACTIK 05; mencionar una Spec en este documento no significa que su archivo ya exista.
+Este inventario refleja tanto las Specs ya redactadas como las que permanecen pendientes. La primera unidad se limita al catálogo de productos; las Specs de movimientos, alertas y panel se conservan como trabajo de fases posteriores.
 
 | Tipo | Prefijo | Qué define | Template |
 |---|---|---|---|
@@ -23,65 +24,64 @@ Este inventario corresponde a un proyecto nuevo que todavía no ha sido implemen
 
 | Estado | Significado en este proyecto |
 |---|---|
-| `planned` | La necesidad de la Spec fue identificada, pero el documento FRACTIK 05 todavía no existe. |
-| `draft` | El documento FRACTIK 05 existe, pero continúa incompleto. |
+| `draft` | La Spec está identificada o en elaboración y todavía requiere revisión humana. |
 | `reviewed` | El documento fue revisado y tiene observaciones atendidas. |
 | `approved` | El documento fue aprobado para guiar la implementación. |
 | `implemented` | La solución definida por la Spec fue implementada y validada. |
 
-Se agrega `planned` al estado original del template para distinguir una Spec solamente identificada de una Spec que ya tiene un documento en borrador.
+La existencia física del archivo se registra en una columna separada. De esta forma no se introduce un estado adicional fuera de los definidos por Fractik 2.0.
 
 ## Matriz de trazabilidad
 
-La columna **ACs que deberá cubrir** indica qué criterios deberán explicarse en cada futura Spec. No representa cobertura documental actual.
+La columna **Archivo** distingue una Spec redactada de una necesidad todavía pendiente, mientras que **Status** conserva únicamente estados válidos de Fractik.
 
-| Spec ID | Título | Tipo | Feature | ACs que deberá cubrir | Status |
-|---|---|---|---|---|---|
-| NF-001 | Integridad, idempotencia y manejo de fallos | NF | F-2.1, F-2.2, F-3.1, F-3.3 | F-2.1 AC4, AC6; F-2.2 AC4-AC6; F-3.1 AC5, AC6; F-3.3 AC3 | planned |
-| NF-002 | Actualización reactiva y tiempo de respuesta | NF | F-1.2, F-3.1, F-4.1 | F-1.2 AC5; F-3.1 AC3; F-4.1 AC6 | planned |
-| DA-001 | Modelo de datos del inventario | DA | F-1.1, F-1.3, F-2.1, F-2.2, F-2.3, F-3.1, F-3.2, F-3.3 | Entidades, relaciones y restricciones necesarias para los ACs de estas features | planned |
-| BE-001 | Gestión de productos | BE | F-1.1, F-1.3 | F-1.1 AC1-AC5; F-1.3 AC1-AC5 | planned |
-| BE-002 | Registro de movimientos y actualización de existencia | BE | F-1.3, F-2.1, F-2.2 | F-1.3 AC5; F-2.1 AC1-AC6; F-2.2 AC1-AC6 | planned |
-| BE-003 | Flujo EDA de movimientos y alertas | BE | F-3.1, F-3.3 | F-3.1 AC1-AC6; F-3.3 AC1, AC3-AC6 | planned |
-| BE-004 | Consultas del inventario | BE | F-1.2, F-2.3, F-3.2, F-4.1 | F-1.2 AC1-AC5; F-2.3 AC1-AC5; F-3.2 AC1-AC5; F-4.1 AC1-AC6 | planned |
-| FE-001 | Interfaz de productos | FE | F-1.1, F-1.2, F-1.3 | F-1.1 AC1, AC2, AC4, AC5; F-1.2 AC1-AC5; F-1.3 AC1, AC3-AC5 | planned |
-| FE-002 | Interfaz de movimientos | FE | F-2.1, F-2.2, F-2.3 | F-2.1 AC1-AC3, AC5; F-2.2 AC1-AC3, AC5; F-2.3 AC1-AC5 | planned |
-| FE-003 | Interfaz de alertas | FE | F-3.2, F-3.3 | F-3.2 AC1-AC5; F-3.3 AC2-AC6 | planned |
-| FE-004 | Panel general del inventario | FE | F-4.1 | F-4.1 AC1-AC6 | planned |
+| Spec ID | Título | Tipo | Feature | ACs cubiertos o previstos | Archivo | Status |
+|---|---|---|---|---|---|---|
+| NF-001 | Integridad, idempotencia y manejo de fallos | NF | F-2.1, F-2.2, F-3.1, F-3.3 | F-2.1 AC4, AC6; F-2.2 AC4-AC6; F-3.1 AC5, AC6; F-3.3 AC3 | Existe | draft |
+| NF-002 | Actualización reactiva y tiempo de respuesta | NF | F-1.2, F-3.1, F-4.1 | F-1.2 AC5; F-3.1 AC3; F-4.1 AC6 | Pendiente | draft |
+| DA-001 | Modelo de datos del inventario | DA | F-1.1, F-1.3, F-2.1, F-2.2, F-2.3, F-3.1, F-3.2, F-3.3 | Entidades, relaciones y restricciones necesarias para los ACs de estas features | Existe | draft |
+| BE-001 | Crear y listar productos | BE | F-1.1, F-1.2 | F-1.1 AC1-AC5; F-1.2 AC1, AC4, AC5 | Existe | draft |
+| BE-002 | Registro de movimientos y actualización de existencia | BE | F-1.3, F-2.1, F-2.2 | F-1.3 AC5; F-2.1 AC1-AC6; F-2.2 AC1-AC6 | Pendiente | draft |
+| BE-003 | Flujo EDA de movimientos y alertas | BE | F-3.1, F-3.3 | F-3.1 AC1-AC6; F-3.3 AC1, AC3-AC6 | Existe | draft |
+| BE-004 | Consultas ampliadas del inventario | BE | F-1.2, F-2.3, F-3.2, F-4.1 | F-1.2 AC2, AC3; F-2.3 AC1-AC5; F-3.2 AC1-AC5; F-4.1 AC1-AC6 | Pendiente | draft |
+| FE-001 | Interfaz de productos | FE | F-1.1, F-1.2 | F-1.1 AC1, AC2, AC4, AC5; F-1.2 AC1, AC4 | Existe | draft |
+| FE-002 | Interfaz de movimientos | FE | F-2.1, F-2.2, F-2.3 | F-2.1 AC1-AC3, AC5; F-2.2 AC1-AC3, AC5; F-2.3 AC1-AC5 | Pendiente | draft |
+| FE-003 | Interfaz de alertas | FE | F-3.2, F-3.3 | F-3.2 AC1-AC5; F-3.3 AC2-AC6 | Existe | draft |
+| FE-004 | Panel general del inventario | FE | F-4.1 | F-4.1 AC1-AC6 | Pendiente | draft |
 
 ## Cobertura por Feature
 
-En esta versión, todas las filas permanecen pendientes porque ninguna Spec ha sido redactada todavía con FRACTIK 05. La columna de Spec muestra solamente el documento previsto para cubrir el criterio.
+La cobertura distingue entre documentación existente y documentos pendientes. `Documentado` no significa `implemented`: la aprobación y validación corresponden a revisiones separadas.
 
 ### F-1.1: Crear producto
 
 | AC | Spec(s) prevista(s) | Cobertura documental |
 |---|---|---|
-| AC1: Solicitar SKU, nombre y stock mínimo | DA-001, BE-001, FE-001 | ⬜ Pendiente |
-| AC2: Permitir descripción opcional | DA-001, BE-001, FE-001 | ⬜ Pendiente |
-| AC3: Rechazar SKU duplicado | DA-001, BE-001 | ⬜ Pendiente |
-| AC4: Validar stock mínimo entero y no negativo | DA-001, BE-001, FE-001 | ⬜ Pendiente |
-| AC5: Crear producto con existencia cero y sin movimiento automático | DA-001, BE-001, FE-001 | ⬜ Pendiente |
+| AC1: Solicitar SKU, nombre y stock mínimo | DA-001, BE-001, FE-001 | 🟨 Documentado en draft |
+| AC2: Permitir descripción opcional | DA-001, BE-001, FE-001 | 🟨 Documentado en draft |
+| AC3: Rechazar SKU duplicado | DA-001, BE-001 | 🟨 Documentado en draft |
+| AC4: Validar stock mínimo entero y no negativo | DA-001, BE-001, FE-001 | 🟨 Documentado en draft |
+| AC5: Crear producto con existencia cero y sin movimiento automático | DA-001, BE-001, FE-001 | 🟨 Documentado en draft |
 
 ### F-1.2: Consultar productos
 
 | AC | Spec(s) prevista(s) | Cobertura documental |
 |---|---|---|
-| AC1: Mostrar SKU, nombre, existencia, mínimo y estado | BE-004, FE-001 | ⬜ Pendiente |
-| AC2: Indicar stock bajo cuando existencia sea menor o igual al mínimo | BE-004, FE-001 | ⬜ Pendiente |
-| AC3: Mostrar detalle e historial del producto | BE-004, FE-001 | ⬜ Pendiente |
-| AC4: Mostrar estado vacío si no hay productos | FE-001 | ⬜ Pendiente |
-| AC5: Reflejar cambios sin recarga manual | NF-002, BE-004, FE-001 | ⬜ Pendiente |
+| AC1: Mostrar SKU, nombre, existencia, mínimo y estado | BE-001, FE-001 | 🟨 Documentado en draft |
+| AC2: Indicar stock bajo cuando existencia sea menor o igual al mínimo | BE-004, ampliación de FE-001 | ⬜ Fase futura |
+| AC3: Mostrar detalle e historial del producto | BE-004, ampliación de FE-001 | ⬜ Fase futura |
+| AC4: Mostrar estado vacío si no hay productos | FE-001 | 🟨 Documentado en draft |
+| AC5: Reflejar cambios sin recarga manual | NF-002, BE-001, FE-001 | 🟨 Parcial: creación reactiva documentada |
 
 ### F-1.3: Actualizar y desactivar producto
 
 | AC | Spec(s) prevista(s) | Cobertura documental |
 |---|---|---|
-| AC1: Actualizar nombre, descripción y stock mínimo | DA-001, BE-001, FE-001 | ⬜ Pendiente |
-| AC2: Cambiar SKU únicamente por otro disponible | DA-001, BE-001 | ⬜ Pendiente |
-| AC3: Recalcular indicador al cambiar el mínimo | BE-001, FE-001 | ⬜ Pendiente |
-| AC4: Desactivar sin eliminar historial | DA-001, BE-001, FE-001 | ⬜ Pendiente |
-| AC5: Consultar producto inactivo e impedir nuevos movimientos | DA-001, BE-001, BE-002, FE-001 | ⬜ Pendiente |
+| AC1: Actualizar nombre, descripción y stock mínimo | DA-001, ampliación de BE-001 y FE-001 | ⬜ Fase futura |
+| AC2: Cambiar SKU únicamente por otro disponible | DA-001, ampliación de BE-001 | ⬜ Fase futura |
+| AC3: Recalcular indicador al cambiar el mínimo | Ampliación de BE-001 y FE-001 | ⬜ Fase futura |
+| AC4: Desactivar sin eliminar historial | DA-001, ampliación de BE-001 y FE-001 | ⬜ Fase futura |
+| AC5: Consultar producto inactivo e impedir nuevos movimientos | DA-001, BE-002, ampliación de BE-001 y FE-001 | ⬜ Fase futura |
 
 ### F-2.1: Registrar entrada
 
@@ -158,23 +158,45 @@ En esta versión, todas las filas permanecen pendientes porque ninguna Spec ha s
 | AC5: Mostrar movimientos recientes | BE-004, FE-004 | ⬜ Pendiente |
 | AC6: Actualizar el panel sin recarga manual | NF-002, BE-004, FE-004 | ⬜ Pendiente |
 
+## Gaps
+
+- Faltan los archivos `NF-002`, `BE-002`, `BE-004`, `FE-002` y `FE-004`; todos pertenecen principalmente a fases posteriores.
+- F-1.2 AC2 y AC3 requieren ampliar la interfaz y las consultas después de la primera unidad.
+- F-1.3 permanece fuera del alcance actual y requiere ampliar `BE-001` y `FE-001` antes de considerarse cubierto.
+- `DA-001`, `BE-003`, `FE-003` y `NF-001` describen partes de la arquitectura objetivo que todavía no están implementadas.
+- Ninguna Spec está aprobada; la revisión y aprobación corresponden al responsable humano.
+
+## Orden de creación y revisión sugerido
+
+1. Revisar `DA-001`, `BE-001` y `FE-001` como conjunto documental de la primera unidad.
+2. Crear `BE-002` y `FE-002` al iniciar la unidad de movimientos.
+3. Revisar `NF-001` y `BE-003`, y después `FE-003`, al iniciar eventos y alertas.
+4. Crear `NF-002`, `BE-004` y `FE-004` cuando se amplíen consultas y panel.
+
 ## Resumen
 
-| Tipo | Total | Planned | Draft | Reviewed | Approved | Implemented |
+| Tipo | Total identificado | Archivos existentes | Draft | Reviewed | Approved | Implemented |
 |---|---:|---:|---:|---:|---:|---:|
-| Non-functional | 2 | 2 | 0 | 0 | 0 | 0 |
-| Backend | 4 | 4 | 0 | 0 | 0 | 0 |
-| Frontend | 4 | 4 | 0 | 0 | 0 | 0 |
-| Data | 1 | 1 | 0 | 0 | 0 | 0 |
-| **Total** | **11** | **11** | **0** | **0** | **0** | **0** |
+| Non-functional | 2 | 1 | 2 | 0 | 0 | 0 |
+| Backend | 4 | 2 | 4 | 0 | 0 | 0 |
+| Frontend | 4 | 2 | 4 | 0 | 0 | 0 |
+| Data | 1 | 1 | 1 | 0 | 0 | 0 |
+| **Total** | **11** | **6** | **11** | **0** | **0** | **0** |
 
 ### Estado de cobertura actual
 
 | Concepto | Cantidad |
 |---|---:|
 | Specs identificadas | 11 |
-| Specs redactadas con FRACTIK 05 | 0 |
+| Archivos de Spec existentes | 6 |
+| Archivos de Spec pendientes | 5 |
 | ACs con una Spec prevista | 55 |
-| ACs cubiertos por una Spec redactada | 0 |
+| ACs de F-1.1 documentados en draft | 5 de 5 |
+| ACs de F-1.2 documentados completamente en draft | 2 de 5 |
 
-Cuando se cree una Spec con FRACTIK 05, su estado cambiará de `planned` a `draft`. Los criterios solo podrán marcarse como parcial o completamente cubiertos después de revisar el contenido real de esa Spec.
+La cobertura documental no equivale a aprobación ni implementación. Un responsable humano debe revisar cada Spec antes de cambiarla a `reviewed` o `approved`.
+
+## Changelog
+
+- v1.1 (2026-08-05): Se sincronizaron los archivos existentes, se eliminó el estado no estándar, se delimitó la primera unidad y se añadieron gaps y orden de creación.
+- v1.0 (2026-08-04): Inventario inicial de Specs previstas.

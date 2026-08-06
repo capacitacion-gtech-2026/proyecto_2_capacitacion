@@ -1,10 +1,11 @@
 # Product Requirements: Sistema de Gestión de Inventario
 
 > **ID:** REQ-inventario  
-> **Versión:** 1  
-> **Fecha:** 2026-08-03  
-> **Vision padre:** V-inventario  
+> **Versión:** 1.1
+> **Fecha:** 2026-08-05
+> **Autor:** Angel Yahir Murillo Gallegos
 > **Status:** draft
+> **Padre:** V-inventario
 
 ---
 
@@ -14,14 +15,20 @@ El Sistema de Gestión de Inventario es una aplicación para encargados de almac
 
 El contexto, los límites y las métricas generales se encuentran en la Vision `V-inventario`.
 
+## Alcance de esta versión
+
+Este documento conserva los requisitos del producto completo, pero la actividad actual cubre únicamente la **fase 1: catálogo de productos**. En esta unidad se implementan la preparación del proyecto, el modelo inicial de `productos`, las funciones `productos.crear` y `productos.listar`, y la página `/productos` con su formulario.
+
+Las capacidades de actualización y desactivación de productos, movimientos, eventos, consumidores, alertas y panel general permanecen documentadas para fases posteriores. Su presencia en este documento no las convierte en parte de la primera unidad.
+
 ## Mapa de capabilities
 
-| ID | Capability | Features | Prioridad |
-|---|---|---:|---|
-| C-1 | Gestión de productos | 3 | Crítica |
-| C-2 | Control de movimientos | 3 | Crítica |
-| C-3 | Alertas de stock | 3 | Alta |
-| C-4 | Consulta general del inventario | 1 | Alta |
+| ID | Capability | Features | Prioridad | Fase |
+|---|---|---:|---|---|
+| C-1 | Gestión de productos | 3 | Crítica | Fase 1; F-1.3 queda para una ampliación posterior |
+| C-2 | Control de movimientos | 3 | Crítica | Fase 2 |
+| C-3 | Alertas de stock | 3 | Alta | Fase 3 |
+| C-4 | Consulta general del inventario | 1 | Alta | Fase 4 |
 
 ---
 
@@ -43,6 +50,7 @@ Mantener el catálogo de productos sobre el que se registrarán las entradas, sa
 
 > **Prioridad:** Crítica  
 > **Dependencias:** Ninguna
+> **Status:** in_progress
 
 Permite al administrador registrar un producto con la información mínima necesaria para identificarlo y controlar su stock. Todo producto nuevo comienza con existencia cero; la primera cantidad disponible deberá registrarse posteriormente como una entrada.
 
@@ -66,6 +74,7 @@ Permite al administrador registrar un producto con la información mínima neces
 
 > **Prioridad:** Crítica  
 > **Dependencias:** F-1.1
+> **Status:** in_progress
 
 Muestra el catálogo con la información necesaria para conocer el estado actual del inventario. También permite abrir el detalle de un producto para consultar sus datos y movimientos relacionados.
 
@@ -88,6 +97,7 @@ Muestra el catálogo con la información necesaria para conocer el estado actual
 
 > **Prioridad:** Alta  
 > **Dependencias:** F-1.1
+> **Status:** draft
 
 Permite corregir los datos permitidos de un producto y retirarlo del uso operativo sin borrar la información histórica. La desactivación reemplaza la eliminación permanente para conservar la relación con los movimientos y las alertas.
 
@@ -127,6 +137,7 @@ Registrar cada entrada y salida como la única forma permitida de modificar la e
 
 > **Prioridad:** Crítica  
 > **Dependencias:** F-1.1
+> **Status:** draft
 
 Permite al encargado registrar el ingreso físico de unidades de un producto activo. La operación aumenta la existencia y queda registrada en el historial para conservar la trazabilidad.
 
@@ -151,6 +162,7 @@ Permite al encargado registrar el ingreso físico de unidades de un producto act
 
 > **Prioridad:** Crítica  
 > **Dependencias:** F-1.1
+> **Status:** draft
 
 Permite al encargado registrar las unidades que salen físicamente del almacén. Antes de aceptar la operación, el sistema comprueba que exista cantidad suficiente para impedir existencias negativas.
 
@@ -175,6 +187,7 @@ Permite al encargado registrar las unidades que salen físicamente del almacén.
 
 > **Prioridad:** Alta  
 > **Dependencias:** F-2.1, F-2.2
+> **Status:** draft
 
 Muestra las entradas y salidas registradas para explicar cada cambio en la existencia. Los movimientos son registros históricos y no pueden modificarse ni eliminarse desde la aplicación.
 
@@ -214,6 +227,7 @@ Detectar productos con existencia igual o menor que su stock mínimo y comunicar
 
 > **Prioridad:** Crítica  
 > **Dependencias:** F-1.1, F-2.1, F-2.2
+> **Status:** draft
 
 Después de un movimiento válido, el sistema evalúa la existencia resultante como una reacción separada al registro del movimiento. Si la existencia es igual o menor que el stock mínimo, genera una alerta interna sin bloquear ni repetir el movimiento que la originó.
 
@@ -238,6 +252,7 @@ Después de un movimiento válido, el sistema evalúa la existencia resultante c
 
 > **Prioridad:** Alta  
 > **Dependencias:** F-3.1
+> **Status:** draft
 
 Permite consultar las alertas generadas y distinguir las que todavía requieren atención de las que ya fueron resueltas. Desde la alerta se podrá acceder al producto relacionado para revisar su existencia e historial.
 
@@ -260,6 +275,7 @@ Permite consultar las alertas generadas y distinguir las que todavía requieren 
 
 > **Prioridad:** Alta  
 > **Dependencias:** F-3.1, F-3.2, F-2.1
+> **Status:** draft
 
 Una alerta podrá resolverse automáticamente cuando una entrada deje la existencia por encima del mínimo o manualmente mediante una acción del administrador. Resolver manualmente una alerta cierra ese aviso, pero no cambia la existencia ni elimina el indicador de stock bajo si la condición continúa.
 
@@ -300,6 +316,7 @@ Presentar en una sola vista el estado actual del inventario y los elementos que 
 
 > **Prioridad:** Alta  
 > **Dependencias:** F-1.2, F-2.3, F-3.2
+> **Status:** draft
 
 Muestra un resumen operativo al abrir la aplicación para evitar que el administrador tenga que revisar varias pantallas. Los datos se actualizan cuando cambia la existencia, se registra un movimiento o cambia el estado de una alerta.
 
@@ -322,6 +339,17 @@ Muestra un resumen operativo al abrir la aplicación para evitar que el administ
 
 ---
 
+## Requisitos no funcionales globales
+
+| ID ref | Requisito | Criterio medible |
+|---|---|---|
+| NFR-1 | Integridad del catálogo | El 100% de los productos se crea con existencia cero; un error de validación deja cero escrituras parciales. |
+| NFR-2 | Validación consistente | SKU, nombre y stock mínimo se validan tanto en la interfaz como en Convex; Convex conserva la autoridad final. |
+| NFR-3 | Reactividad | Los productos creados aparecen mediante la query reactiva sin una recarga manual de la página. |
+| NFR-4 | Accesibilidad básica | Campos con etiquetas, errores asociados, controles operables por teclado y estados que no dependan únicamente del color. |
+| NFR-5 | Adaptación de interfaz | La página `/productos` permanece utilizable desde 320 px de ancho sin desbordamiento horizontal de la página. |
+| NFR-6 | Seguridad de demostración | No se almacenan secretos en el repositorio ni se utilizan datos reales mientras no exista autenticación. |
+
 ## Resumen cuantitativo
 
 | Capability | Features | User Stories | ACs |
@@ -331,3 +359,8 @@ Muestra un resumen operativo al abrir la aplicación para evitar que el administ
 | C-3: Alertas de stock | 3 | 3 | 17 |
 | C-4: Consulta general del inventario | 1 | 1 | 6 |
 | **Total** | **10** | **10** | **55** |
+
+## Changelog
+
+- v1.1 (2026-08-05): Se delimitó la fase 1, se añadieron estados por feature, fases del mapa de capabilities y requisitos no funcionales medibles.
+- v1.0 (2026-08-03): Requisitos iniciales del producto completo.

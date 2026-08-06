@@ -1,10 +1,11 @@
 # FE-003: Interfaz de alertas
 
-> **Tipo:** Frontend  
-> **Feature:** F-3.2, F-3.3  
-> **ACs definidos por esta Spec:** F-3.2 AC1-AC5; F-3.3 AC2-AC6  
-> **Status:** draft  
+> **Tipo:** Frontend
+> **Feature:** F-3.2, F-3.3
+> **ACs cubiertos:** F-3.2 AC1-AC5; F-3.3 AC2-AC6
+> **Status:** draft
 > **Dependencias:** DA-001, BE-003, BE-004
+> **Architecture ref:** ARCH-inventario, secciones 3.1-3.5
 
 ## Qué muestra
 
@@ -149,7 +150,29 @@ No se propone instalar paquetes adicionales. Se utilizarán los componentes disp
 - `Button` para acciones.
 - `Sonner` para mensajes de éxito o error, si ya forma parte de la configuración del proyecto.
 
-## Tests asociados
+## Accesibilidad
+
+- Los filtros, acciones y diálogo serán operables con teclado.
+- Las filas o tarjetas no dependerán únicamente del color para comunicar estado.
+- El diálogo anunciará su título, descripción y resultado de la operación.
+- Los botones tendrán nombres accesibles y conservarán un indicador de foco visible.
+- La tabla utilizará encabezados semánticos y las tarjetas mantendrán un orden de lectura coherente.
+
+## Contexto para el agente
+
+Leer `docs/02-architecture.md` secciones 3.1-3.5, `BE-003`, `BE-004` y `DA-001`. Esta interfaz pertenece a la fase 3 y no debe añadirse durante la primera unidad de productos.
+
+## Definition of Done
+
+- [ ] `/alertas` distingue carga, vacío, error y resultados.
+- [ ] Se pueden consultar alertas activas y resueltas.
+- [ ] Resolver manualmente requiere confirmación y no modifica la existencia.
+- [ ] La vista funciona con tabla en escritorio y tarjetas en móvil.
+- [ ] Los controles cumplen las reglas de accesibilidad de esta Spec.
+- [ ] Las verificaciones asociadas fueron ejecutadas y registradas.
+- [ ] La Spec fue revisada y aprobada por el responsable humano.
+
+## Verificaciones asociadas
 
 Los siguientes tests describen verificaciones futuras; todavía no están implementados.
 
@@ -163,3 +186,8 @@ Los siguientes tests describen verificaciones futuras; todavía no están implem
 | TC-FE-003-06 | Conserva el diálogo y muestra error si falla la mutation | Componente |
 | TC-FE-003-07 | Una alerta resuelta no muestra la acción Resolver | Componente |
 | TC-FE-003-08 | En móvil utiliza tarjetas sin desbordamiento horizontal | Manual |
+
+## Changelog
+
+- v1.1 (2026-08-05): Se normalizó la cabecera y se añadieron accesibilidad, contexto, fase y Definition of Done.
+- v1.0 (2026-08-05): Borrador inicial de la interfaz de alertas.
