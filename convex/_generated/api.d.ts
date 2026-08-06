@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as alertasInventario from "../alertasInventario.js";
+import type * as eventos from "../eventos.js";
 import type * as movimientosInventario from "../movimientosInventario.js";
 import type * as productos from "../productos.js";
 
@@ -18,6 +20,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  alertasInventario: typeof alertasInventario;
+  eventos: typeof eventos;
   movimientosInventario: typeof movimientosInventario;
   productos: typeof productos;
 }>;

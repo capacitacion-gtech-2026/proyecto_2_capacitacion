@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 
 const tipoMovimientoValidator = v.union(
@@ -90,6 +91,23 @@ export const registrar = mutation({
       existenciaActual: existenciaResultante,
       actualizadoEn: creadoEn,
     });
+
+    const eventoId = await ctx.db.insert("eventosDominio", {
+      tipo: "MovimientoInventarioRegistrado",
+      movimientoId: id,
+      productoId: args.productoId,
+      existenciaAnterior,
+      existenciaResultante,
+      stockMinimo: producto.stockMinimo,
+      estado: "pendiente",
+      creadoEn,
+    });
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.eventos.procesarMovimientoInventarioRegistrado,
+      { eventoId },
+    );
 
     return {
       id,
