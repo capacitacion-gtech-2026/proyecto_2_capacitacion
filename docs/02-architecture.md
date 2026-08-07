@@ -1,8 +1,8 @@
 # Architecture: Sistema de Gestión de Inventario
 
 > **ID:** ARCH-inventario
-> **Versión:** 1.1
-> **Fecha:** 2026-08-05
+> **Versión:** 1.2
+> **Fecha:** 2026-08-06
 > **Autor:** Angel Yahir Murillo Gallegos
 > **Status:** draft
 > **Padre:** V-inventario
@@ -23,6 +23,7 @@ El alcance se limita a un sistema demostrativo de un solo almacén, sin autentic
 | 2 — Movimientos | Objetivo futuro | Entradas, salidas, historial y actualización controlada de existencia. |
 | 3 — Eventos y alertas | Objetivo futuro | `MovimientoInventarioRegistrado`, consumidor interno y alertas de stock bajo. |
 | 4 — Consulta general | Objetivo futuro | Panel de inventario y consolidación del flujo. |
+| 5 — Solicitudes de stock | Objetivo futuro | Tabla `solicitudesStock`, funciones de creación/aprobación/rechazo, rutas HTTP `api/solicitudes-stock` y página `/solicitudes`. |
 
 Los fragmentos y diagramas relacionados con las unidades 2–4 son contratos propuestos, no evidencia de que esas funciones ya estén implementadas.
 
@@ -102,11 +103,53 @@ flowchart TD
 - **Consecuencias:** La aplicación solo podrá utilizar datos ficticios y se considerará una demostración. Antes de utilizarla con inventario real se deberá incorporar autenticación y autorización.
 
 ### AD-7: Pruebas reducidas a la lógica principal
+- **Alternativas descartadas:** Agregar eventos separados para entrada, salida, creación de producto y alerta, porque no son necesarios para validar el flujo principal. Implementar reintentos con espera incremental, porque aumentaría la lógica y las pruebas requeridas.
+- **Consecuencias:** El ejemplo EDA será pequeño y explicable. Los reintentos automáticos y nuevos consumidores quedarán como evolución futura.
+
+### AD-6: Primera versión sin autenticación
+
+- **Contexto:** El objetivo principal es implementar productos, movimientos, existencias, eventos y alertas dentro del tiempo restante.
+- **Decisión:** No se integrará Clerk ni se crearán usuarios o roles técnicos. “Administrador” y “encargado” serán perfiles funcionales utilizados para describir quién usaría el sistema.
+- **Alternativas descartadas:** Clerk, porque requiere configuración y pruebas adicionales. Autenticación propia, porque implicaría más tiempo y mayor riesgo de seguridad.
+- **Consecuencias:** La aplicación solo podrá utilizar datos ficticios y se considerará una demostración. Antes de utilizarla con inventario real se deberá incorporar autenticación y autorización.
+
+### AD-7: Pruebas reducidas a la lógica principal
 
 - **Contexto:** El proyecto ya se encuentra en su segunda semana.
 - **Decisión:** Se utilizarán Vitest y `convex-test` para validar movimientos, existencia, evento e idempotencia del consumidor. Los recorridos de interfaz se probarán manualmente.
 - **Alternativas descartadas:** Playwright, porque configurar y mantener pruebas completas de navegador consumiría tiempo que debe dedicarse al flujo principal.
 - **Consecuencias:** Las reglas críticas tendrán pruebas automáticas, pero la integración visual completa dependerá de una revisión manual antes de la entrega.
+
+### AD-8: Flujo de solicitudes de stock
+
+- **Contexto:** El sistema necesita un mecanismo para solicitar salidas de stock de forma explícita, tanto desde la interfaz como desde una API HTTP, sin que la solicitud en sí altere la existencia.
+- **Decisión:** Se introduce una nueva entidad `solicitudesStock` con un flujo en tres etapas:
+  1. **Creación** (desde la interfaz o la API): crea el registro con estado `pendiente`. No modifica la existencia. La disponibilidad registrada en ese momento es solo informativa.
+  2. **Aprobación**: lee la existencia en tiempo real dentro de la misma transacción. Si es suficiente, reutiliza la lógica de movimientos existente para crear una salida y deja la solicitud como `aprobada`. Si no es suficiente, guarda la solicitud como `rechazada_sin_stock` y devuelve el resultado —sin lanzar una excepción que revierta la transacción—.
+  3. **Rechazo manual**: el operador puede rechazar una solicitud `pendiente` sin crear movimiento ni evento.
+- **Decisiones derivadas:**
+  - La API HTTP y la interfaz comparten la misma lógica de Convex; no existe una implementación duplicada.
+  - Una solicitud ya resuelta (`aprobada`, `rechazada` o `rechazada_sin_stock`) no se procesa de nuevo.
+  - Una solicitud rechazada (por cualquier motivo) no produce ningún movimiento, evento ni alerta.
+  - El rechazo por stock insuficiente se guarda y se devuelve como resultado; no se lanza como error, para que la transacción no se revierta.
+  - Dos aprobaciones concurrentes sobre el mismo producto nunca producen existencia negativa porque cada una re-lee la existencia dentro de su propia transacción; si la segunda detecta stock insuficiente, queda como `rechazada_sin_stock`.
+  - La lógica de creación del movimiento de salida se reutiliza desde `movimientosInventario.registrar`; no se duplica dentro de la función de aprobación.
+- **Consecuencias:** La existencia nunca se modifica antes de que la solicitud sea aprobada. La concurrencia es segura. La API puede usarse desde herramientas externas (por ejemplo, Postman) y las solicitudes creadas aparecen en la interfaz en tiempo real gracias a las queries reactivas de Convex.
+
+El flujo propuesto será:
+
+```mermaid
+flowchart TD
+    A[Interfaz o API] --> B[Crear solicitud pendiente]
+    B --> C[Aprobación]
+    C --> D{Comprobación transaccional de existencia}
+    D -->|Stock suficiente| E[Movimiento de salida]
+    E --> F[Evento MovimientoInventarioRegistrado]
+    F --> G[Consumidor]
+    G --> H[Alerta si corresponde]
+    D -->|Stock insuficiente| I[rechazada_sin_stock guardada]
+    C2[Rechazo manual] --> J[rechazada guardada, cero movimientos]
+```
 
 ---
 
@@ -155,6 +198,7 @@ La estructura anterior corresponde a la primera unidad. Las rutas y módulos fut
 | `/movimientos` | Mostrar entradas y salidas. | Futura |
 | `/movimientos/nuevo` | Registrar una entrada o salida. | Futura |
 | `/alertas` | Mostrar alertas activas y resueltas. | Futura |
+| `/solicitudes` | Crear solicitudes de stock, listarlas y aprobarlas o rechazarlas. | Futura (fase 5) |
 
 #### Componentes propuestos
 
@@ -336,6 +380,8 @@ erDiagram
     MOVIMIENTO_INVENTARIO ||--|| EVENTO_DOMINIO : produce
     PRODUCTO ||--o{ ALERTA_INVENTARIO : presenta
     EVENTO_DOMINIO ||--o| ALERTA_INVENTARIO : origina
+    PRODUCTO ||--o{ SOLICITUD_STOCK : recibe
+    SOLICITUD_STOCK ||--o| MOVIMIENTO_INVENTARIO : origina
 ```
 
 ### Entidades principales
@@ -346,6 +392,7 @@ erDiagram
 | `movimientosInventario` | Producto, tipo, cantidad, existencia anterior, existencia resultante, motivo y fecha | Conservar el historial inmutable de entradas y salidas. |
 | `eventosDominio` | Tipo, movimiento, producto, existencia resultante, stock mínimo, estado y fechas | Registrar el evento que será procesado por el consumidor. |
 | `alertasInventario` | Producto, evento de origen, estado, existencia, stock mínimo y fechas | Representar los episodios de stock bajo. |
+| `solicitudesStock` | Producto, cantidad, motivo, estado, clave idempotente, origen, existencia informativa y fechas | Registrar peticiones de salida pendientes de aprobación. |
 
 El único tipo de evento inicial será `MovimientoInventarioRegistrado`. Sus estados serán `pendiente`, `procesado` y `fallido`.
 
@@ -458,5 +505,6 @@ La sección 3 de este documento es la fuente de verdad para la estructura, los n
 
 ## Changelog
 
+- v1.2 (2026-08-06): Se añadió la unidad 5 (solicitudes de stock) al estado por unidad, se documentó la decisión AD-8 con el flujo completo de solicitudes, se amplió el modelo de datos con la entidad `solicitudesStock` y se añadió la ruta `/solicitudes` a las páginas propuestas.
 - v1.1 (2026-08-05): Se normalizaron metadatos, se separó la arquitectura implementada de la arquitectura objetivo y se añadió observabilidad explícita.
 - v1.0 (2026-08-03): Arquitectura inicial del sistema completo de inventario.

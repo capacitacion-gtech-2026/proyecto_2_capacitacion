@@ -61,4 +61,30 @@ export default defineSchema({
     .index("por_producto_estado", ["productoId", "estado"])
     .index("por_estado_creado_en", ["estado", "creadoEn"])
     .index("por_evento_origen", ["eventoOrigenId"]),
+
+  solicitudesStock: defineTable({
+    productoId: v.id("productos"),
+    cantidadSolicitada: v.number(),
+    motivo: v.string(),
+    solicitante: v.optional(v.string()),
+    estado: v.union(
+      v.literal("pendiente"),
+      v.literal("aprobada"),
+      v.literal("rechazada"),
+      v.literal("rechazada_sin_stock"),
+    ),
+    claveIdempotencia: v.string(),
+    origen: v.union(v.literal("interfaz"), v.literal("api")),
+    existenciaAlSolicitar: v.number(),
+    disponibleAlSolicitar: v.boolean(),
+    existenciaDisponibleAlResolver: v.optional(v.number()),
+    motivoRechazo: v.optional(v.string()),
+    movimientoId: v.optional(v.id("movimientosInventario")),
+    creadaEn: v.number(),
+    actualizadaEn: v.number(),
+    resueltaEn: v.optional(v.number()),
+  })
+    .index("por_clave_idempotencia", ["claveIdempotencia"])
+    .index("por_estado_creada_en", ["estado", "creadaEn"])
+    .index("por_producto_creada_en", ["productoId", "creadaEn"]),
 });

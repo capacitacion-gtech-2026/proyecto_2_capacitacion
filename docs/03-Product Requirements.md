@@ -1,8 +1,8 @@
 # Product Requirements: Sistema de Gestión de Inventario
 
 > **ID:** REQ-inventario  
-> **Versión:** 1.1
-> **Fecha:** 2026-08-05
+> **Versión:** 1.2
+> **Fecha:** 2026-08-06
 > **Autor:** Angel Yahir Murillo Gallegos
 > **Status:** draft
 > **Padre:** V-inventario
@@ -11,7 +11,7 @@
 
 ## Resumen del producto
 
-El Sistema de Gestión de Inventario es una aplicación para encargados de almacén y administradores de inventario de negocios pequeños que necesitan registrar entradas y salidas en el momento en que ocurren. Mantiene actualizada la existencia de cada producto y genera alertas cuando el stock alcanza el mínimo definido, reduciendo registros desactualizados y revisiones manuales.
+El Sistema de Gestión de Inventario es una aplicación para encargados de almacén y administradores de inventario de negocios pequeños que necesitan registrar entradas y salidas en el momento en que ocurren. Mantiene actualizada la existencia de cada producto y genera alertas cuando el stock alcanza el mínimo definido, reduciendo registros desactualizados y revisiones manuales. Incluye además solicitudes de stock: peticiones de salida que comienzan como pendientes, pueden originarse desde la interfaz o la API, y requieren aprobación explícita para modificar la existencia.
 
 El contexto, los límites y las métricas generales se encuentran en la Vision `V-inventario`.
 
@@ -29,6 +29,7 @@ Las capacidades de actualización y desactivación de productos, movimientos, ev
 | C-2 | Control de movimientos | 3 | Crítica | Fase 2 |
 | C-3 | Alertas de stock | 3 | Alta | Fase 3 |
 | C-4 | Consulta general del inventario | 1 | Alta | Fase 4 |
+| C-5 | Solicitudes de stock | 3 | Alta | Fase 5 |
 
 ---
 
@@ -339,6 +340,99 @@ Muestra un resumen operativo al abrir la aplicación para evitar que el administ
 
 ---
 
+## C-5: Solicitudes de stock
+
+> **Prioridad:** Alta  
+> **Dependencias:** C-1, C-2
+
+### Propósito
+
+Permitir que operadores o sistemas externos soliciten una salida de stock de forma explícita. La solicitud es un registro informativo en estado pendiente; solo la aprobación modifica la existencia.
+
+### Alcance
+
+**Incluye:** Crear solicitudes desde la interfaz o la API, consultar solicitudes en tiempo real, aprobar o rechazar solicitudes con comprobación transaccional de stock y prevención de existencia negativa.  
+**No incluye:** Autenticación del solicitante, lógica de aprobación multietapa, notificaciones externas ni gestión de proveedores.
+
+### F-5.1: Crear solicitud de stock
+
+> **Prioridad:** Alta  
+> **Dependencias:** F-1.1  
+> **Status:** draft
+
+Permite crear una solicitud de salida de stock para un producto activo. La solicitud queda en estado `pendiente` y no reserva ni descuenta existencia. La disponibilidad informada al crear es solo referencial.
+
+**Acceptance Criteria:**
+
+- [ ] AC1: El producto al que se solicita el stock debe estar activo.
+- [ ] AC2: La cantidad solicitada debe ser un número entero positivo.
+- [ ] AC3: El motivo de la solicitud es obligatorio.
+- [ ] AC4: El solicitante es opcional; su ausencia no impide crear la solicitud.
+- [ ] AC5: La solicitud puede crearse tanto desde la interfaz como desde la API; ambas rutas usan la misma lógica.
+- [ ] AC6: El estado inicial de toda solicitud creada es `pendiente`.
+- [ ] AC7: Una solicitud pendiente no modifica `existenciaActual` ni genera movimientos, eventos o alertas.
+- [ ] AC8: Si se envía la misma `claveIdempotencia` con los mismos datos, se devuelve la solicitud original sin crear un duplicado.
+- [ ] AC9: Si se envía la misma `claveIdempotencia` con datos distintos, la operación se rechaza con un error.
+
+**User Stories:**
+
+**US-5.1.1** — Como encargado de almacén o sistema externo, quiero solicitar una salida de stock para que quede registrada y sea aprobada o rechazada explícitamente.
+
+- AC1: No puedo solicitar stock para un producto inactivo.
+- AC2: Al crear, la solicitud queda en estado pendiente sin afectar el inventario.
+- AC3: Una solicitud enviada desde Postman aparece en la interfaz sin recargar la página.
+
+### F-5.2: Consultar solicitudes de stock
+
+> **Prioridad:** Alta  
+> **Dependencias:** F-5.1  
+> **Status:** draft
+
+Permite listar y consultar el detalle de las solicitudes de stock en tiempo real, incluyendo su estado actual y la disponibilidad informativa al momento de crear.
+
+**Acceptance Criteria:**
+
+- [ ] AC1: El listado muestra producto, cantidad, motivo, solicitante opcional, estado, origen y fecha de creación.
+- [ ] AC2: Es posible consultar el detalle de una solicitud por su identificador.
+- [ ] AC3: Las solicitudes pueden filtrarse por estado (`pendiente`, `aprobada`, `rechazada`, `rechazada_sin_stock`).
+- [ ] AC4: El listado se actualiza en tiempo real; una solicitud enviada desde la API aparece sin recargar la página.
+- [ ] AC5: Se puede distinguir si la solicitud fue creada desde la interfaz o desde la API.
+
+**User Stories:**
+
+**US-5.2.1** — Como administrador del inventario, quiero consultar las solicitudes de stock en tiempo real para saber cuáles están pendientes de acción.
+
+- AC1: Puedo ver el estado y el origen de cada solicitud.
+- AC2: Los cambios aparecen sin recargar la página.
+
+### F-5.3: Aprobar o rechazar solicitud de stock
+
+> **Prioridad:** Alta  
+> **Dependencias:** F-5.1, F-2.2  
+> **Status:** draft
+
+Permite aprobar o rechazar explícitamente una solicitud pendiente. La aprobación comprueba la existencia en tiempo real dentro de la misma transacción; si el stock es insuficiente, la solicitud queda como `rechazada_sin_stock` en lugar de crear el movimiento. El rechazo manual no crea ningún movimiento. Una solicitud ya resuelta no puede procesarse de nuevo.
+
+**Acceptance Criteria:**
+
+- [ ] AC1: Al aprobar, el sistema re-lee la existencia dentro de la misma transacción antes de crear el movimiento.
+- [ ] AC2: Con stock suficiente, la aprobación crea exactamente un movimiento de salida y deja la solicitud como `aprobada`.
+- [ ] AC3: Con stock insuficiente, la aprobación guarda la solicitud como `rechazada_sin_stock` sin crear ningún movimiento, evento ni alerta.
+- [ ] AC4: El resultado de un rechazo por stock insuficiente informa la cantidad solicitada y la existencia disponible.
+- [ ] AC5: El rechazo manual deja la solicitud como `rechazada` sin crear movimientos, eventos ni alertas.
+- [ ] AC6: Una solicitud ya resuelta (`aprobada`, `rechazada` o `rechazada_sin_stock`) no puede ser procesada nuevamente.
+- [ ] AC7: Dos aprobaciones concurrentes sobre el mismo producto nunca producen existencia negativa; la segunda detecta stock insuficiente y queda como `rechazada_sin_stock`.
+
+**User Stories:**
+
+**US-5.3.1** — Como administrador del inventario, quiero aprobar o rechazar solicitudes de stock para controlar cuándo y cómo se descuentan unidades del inventario.
+
+- AC1: Al aprobar una solicitud vlida, la existencia baja inmediatamente y el movimiento queda registrado.
+- AC2: Si el stock ya no alcanza al momento de aprobar, recibo el detalle del rechazo y el inventario no se modifica.
+- AC3: Puedo rechazar manualmente una solicitud pendiente sin afectar el inventario.
+
+---
+
 ## Requisitos no funcionales globales
 
 | ID ref | Requisito | Criterio medible |
@@ -358,9 +452,11 @@ Muestra un resumen operativo al abrir la aplicación para evitar que el administ
 | C-2: Control de movimientos | 3 | 3 | 17 |
 | C-3: Alertas de stock | 3 | 3 | 17 |
 | C-4: Consulta general del inventario | 1 | 1 | 6 |
-| **Total** | **10** | **10** | **55** |
+| C-5: Solicitudes de stock | 3 | 3 | 21 |
+| **Total** | **13** | **13** | **76** |
 
 ## Changelog
 
+- v1.2 (2026-08-06): Se agregó la capability C-5 (Solicitudes de stock) con features F-5.1, F-5.2 y F-5.3 y sus 21 ACs. Se actualizó el resumen cuantitativo y el mapa de capabilities.
 - v1.1 (2026-08-05): Se delimitó la fase 1, se añadieron estados por feature, fases del mapa de capabilities y requisitos no funcionales medibles.
 - v1.0 (2026-08-03): Requisitos iniciales del producto completo.

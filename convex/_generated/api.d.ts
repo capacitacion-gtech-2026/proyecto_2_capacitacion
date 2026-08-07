@@ -12,6 +12,7 @@ import type * as alertasInventario from "../alertasInventario.js";
 import type * as eventos from "../eventos.js";
 import type * as movimientosInventario from "../movimientosInventario.js";
 import type * as productos from "../productos.js";
+import type * as solicitudesStock from "../solicitudesStock.js";
 
 import type {
   ApiFromModules,
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   eventos: typeof eventos;
   movimientosInventario: typeof movimientosInventario;
   productos: typeof productos;
+  solicitudesStock: typeof solicitudesStock;
 }>;
 
 /**
