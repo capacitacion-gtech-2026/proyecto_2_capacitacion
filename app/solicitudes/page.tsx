@@ -101,28 +101,28 @@ function BadgeEstado({ estado }: { estado: Doc<"solicitudesStock">["estado"] }) 
   switch (estado) {
     case "pendiente":
       return (
-        <Badge className="border border-amber-400/20 bg-amber-400/10 text-amber-300">
+        <Badge className="border border-blue-300/20 bg-blue-300/10 text-blue-200">
           <Clock className="mr-1 size-3" />
           Pendiente
         </Badge>
       );
     case "aprobada":
       return (
-        <Badge className="border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
+        <Badge className="border border-blue-400/20 bg-blue-400/10 text-blue-300">
           <CheckCircle className="mr-1 size-3" />
           Aprobada
         </Badge>
       );
     case "rechazada":
       return (
-        <Badge className="border border-rose-400/20 bg-rose-400/10 text-rose-300">
+        <Badge className="border border-zinc-400/20 bg-zinc-400/10 text-zinc-300">
           <XCircle className="mr-1 size-3" />
           Rechazada
         </Badge>
       );
     case "rechazada_sin_stock":
       return (
-        <Badge className="border border-orange-400/20 bg-orange-400/10 text-orange-300">
+        <Badge className="border border-zinc-500/20 bg-zinc-500/10 text-zinc-400">
           <AlertTriangle className="mr-1 size-3" />
           Rechazada sin stock
         </Badge>
@@ -133,7 +133,7 @@ function BadgeEstado({ estado }: { estado: Doc<"solicitudesStock">["estado"] }) 
 function BadgeOrigen({ origen }: { origen: Doc<"solicitudesStock">["origen"] }) {
   if (origen === "api") {
     return (
-      <Badge className="border border-purple-400/20 bg-purple-400/10 text-purple-300">
+      <Badge className="border border-blue-400/20 bg-blue-400/10 text-blue-300">
         <Globe className="mr-1 size-3" />
         API
       </Badge>
@@ -320,7 +320,7 @@ export default function SolicitudesPage() {
             </div>
           </Link>
           <div className="flex items-center gap-2 text-xs text-zinc-400">
-            <span className="size-1.5 rounded-full bg-purple-400" />
+            <span className="size-1.5 rounded-full bg-blue-400" />
             Solicitudes de stock
           </div>
         </div>
@@ -357,7 +357,7 @@ export default function SolicitudesPage() {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="-my-2 text-emerald-300 hover:bg-emerald-400/10 hover:text-emerald-200"
+                className="-my-2 text-blue-300 hover:bg-blue-400/10 hover:text-blue-200"
                 onClick={() => setSubmitSuccess(null)}
               >
                 <X />
@@ -408,7 +408,7 @@ export default function SolicitudesPage() {
             <Card>
               <CardHeader className="border-b border-white/[0.07]">
                 <h2 className="flex items-center gap-2 text-base font-medium text-zinc-100">
-                  <ClipboardList className="size-4 text-purple-400" />
+                  <ClipboardList className="size-4 text-blue-400" />
                   Nueva solicitud
                 </h2>
                 <p className="mt-1 text-sm text-zinc-400">
@@ -440,7 +440,7 @@ export default function SolicitudesPage() {
                 >
                   <div className="space-y-2">
                     <Label htmlFor="productoId">
-                      Producto <span className="text-rose-400">*</span>
+                      Producto <span className="text-blue-400">*</span>
                     </Label>
                     <select
                       id="productoId"
@@ -448,7 +448,7 @@ export default function SolicitudesPage() {
                       aria-describedby={
                         errors.productoId ? "productoId-error" : undefined
                       }
-                      className="h-10 w-full rounded-lg border border-white/10 bg-[#0c0e13] px-3.5 text-sm text-zinc-100 outline-none transition-colors hover:border-white/15 focus-visible:border-blue-400/70 focus-visible:ring-2 focus-visible:ring-blue-400/15 aria-invalid:border-rose-400/70"
+                      className="h-10 w-full rounded-lg border border-white/10 bg-[#0c0e13] px-3.5 text-sm text-zinc-100 outline-none transition-colors hover:border-white/15 focus-visible:border-blue-400/70 focus-visible:ring-2 focus-visible:ring-blue-400/15 aria-invalid:border-blue-400/70"
                       {...register("productoId")}
                     >
                       <option value="">Selecciona un producto</option>
@@ -462,7 +462,7 @@ export default function SolicitudesPage() {
                       <p
                         id="productoId-error"
                         role="alert"
-                        className="text-xs text-rose-400"
+                        className="text-xs text-blue-400"
                       >
                         {errors.productoId.message}
                       </p>
@@ -491,7 +491,7 @@ export default function SolicitudesPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="cantidadSolicitada">
-                      Cantidad solicitada <span className="text-rose-400">*</span>
+                      Cantidad solicitada <span className="text-blue-400">*</span>
                     </Label>
                     <Input
                       id="cantidadSolicitada"
@@ -512,7 +512,7 @@ export default function SolicitudesPage() {
                       <p
                         id="cantidadSolicitada-error"
                         role="alert"
-                        className="text-xs text-rose-400"
+                        className="text-xs text-blue-400"
                       >
                         {errors.cantidadSolicitada.message}
                       </p>
@@ -521,7 +521,7 @@ export default function SolicitudesPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="motivo">
-                      Motivo <span className="text-rose-400">*</span>
+                      Motivo <span className="text-blue-400">*</span>
                     </Label>
                     <Textarea
                       id="motivo"
@@ -535,7 +535,7 @@ export default function SolicitudesPage() {
                       <p
                         id="motivo-error"
                         role="alert"
-                        className="text-xs text-rose-400"
+                        className="text-xs text-blue-400"
                       >
                         {errors.motivo.message}
                       </p>
@@ -553,7 +553,7 @@ export default function SolicitudesPage() {
 
                   <Button
                     type="submit"
-                    className="w-full bg-purple-600 hover:bg-purple-500"
+                    className="w-full bg-blue-600 hover:bg-blue-500"
                     disabled={isSubmitting || productosActivos.length === 0}
                   >
                     {isSubmitting ? (
@@ -579,7 +579,7 @@ export default function SolicitudesPage() {
               <CardHeader className="flex flex-col gap-4 border-b border-white/[0.07] md:flex-row md:items-end md:justify-between">
                 <div>
                   <h2 className="flex items-center gap-2 text-base font-medium text-zinc-100">
-                    <ClipboardList className="size-4 text-purple-400" />
+                    <ClipboardList className="size-4 text-blue-400" />
                     Solicitudes registradas
                   </h2>
                   <p className="mt-1 text-sm text-zinc-400" aria-live="polite">
@@ -673,12 +673,12 @@ export default function SolicitudesPage() {
                                   Solicitante: {solicitud.solicitante || "Sin especificar"}
                                 </p>
                                 {solicitud.motivoRechazo && (
-                                  <p className="mt-1 text-xs font-medium text-rose-400">
+                                  <p className="mt-1 text-xs font-medium text-zinc-400">
                                     Rechazo: {solicitud.motivoRechazo}
                                   </p>
                                 )}
                                 {solicitud.movimientoId && (
-                                  <p className="mt-1 font-mono text-[10px] text-emerald-400">
+                                  <p className="mt-1 font-mono text-[10px] text-blue-400">
                                     Movimiento: {solicitud.movimientoId}
                                   </p>
                                 )}
@@ -696,8 +696,8 @@ export default function SolicitudesPage() {
                                 <p
                                   className={
                                     stockActualVigente >= solicitud.cantidadSolicitada
-                                      ? "text-[10px] text-emerald-400"
-                                      : "text-[10px] text-rose-400"
+                                      ? "text-[10px] text-blue-400"
+                                      : "text-[10px] text-zinc-500"
                                   }
                                 >
                                   {stockActualVigente >= solicitud.cantidadSolicitada
@@ -711,7 +711,7 @@ export default function SolicitudesPage() {
                                     <Button
                                       type="button"
                                       size="sm"
-                                      className="h-8 bg-emerald-600 px-2.5 text-xs hover:bg-emerald-500"
+                                      className="h-8 bg-blue-600 px-2.5 text-xs hover:bg-blue-500"
                                       onClick={() => setSolicitudAprobar(solicitud)}
                                     >
                                       Aprobar
@@ -720,7 +720,7 @@ export default function SolicitudesPage() {
                                       type="button"
                                       variant="outline"
                                       size="sm"
-                                      className="h-8 px-2.5 text-xs text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
+                                      className="h-8 px-2.5 text-xs text-zinc-300 hover:bg-zinc-500/10 hover:text-zinc-200"
                                       onClick={() => {
                                         setSolicitudRechazar(solicitud);
                                         setMotivoRechazoInput("");
@@ -819,7 +819,7 @@ export default function SolicitudesPage() {
                           </dl>
 
                           {solicitud.motivoRechazo && (
-                            <p className="mt-2 text-xs font-medium text-rose-400">
+                            <p className="mt-2 text-xs font-medium text-zinc-400">
                               Motivo de rechazo: {solicitud.motivoRechazo}
                             </p>
                           )}
@@ -831,7 +831,7 @@ export default function SolicitudesPage() {
                           )}
 
                           {solicitud.movimientoId && (
-                            <p className="mt-1 font-mono text-xs text-emerald-400">
+                            <p className="mt-1 font-mono text-xs text-blue-400">
                               Movimiento: {solicitud.movimientoId}
                             </p>
                           )}
@@ -845,7 +845,7 @@ export default function SolicitudesPage() {
                               <Button
                                 type="button"
                                 size="sm"
-                                className="flex-1 bg-emerald-600 text-xs hover:bg-emerald-500"
+                                className="flex-1 bg-blue-600 text-xs hover:bg-blue-500"
                                 onClick={() => setSolicitudAprobar(solicitud)}
                               >
                                 Aprobar
@@ -854,7 +854,7 @@ export default function SolicitudesPage() {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 text-xs text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
+                                className="flex-1 text-xs text-zinc-300 hover:bg-zinc-500/10 hover:text-zinc-200"
                                 onClick={() => {
                                   setSolicitudRechazar(solicitud);
                                   setMotivoRechazoInput("");
@@ -934,7 +934,7 @@ export default function SolicitudesPage() {
             </Button>
             <Button
               type="button"
-              className="bg-emerald-600 hover:bg-emerald-500"
+              className="bg-blue-600 hover:bg-blue-500"
               disabled={isApproving || !solicitudAprobar}
               onClick={confirmarAprobacion}
             >
@@ -992,7 +992,7 @@ export default function SolicitudesPage() {
 
           <div className="space-y-2">
             <Label htmlFor="motivoRechazoInput">
-              Motivo del rechazo <span className="text-rose-400">*</span>
+              Motivo del rechazo <span className="text-blue-400">*</span>
             </Label>
             <Textarea
               id="motivoRechazoInput"
@@ -1017,7 +1017,7 @@ export default function SolicitudesPage() {
             </Button>
             <Button
               type="button"
-              className="bg-rose-600 hover:bg-rose-500"
+              className="bg-blue-600 hover:bg-blue-500"
               disabled={isRejecting || !solicitudRechazar || !motivoRechazoInput.trim()}
               onClick={confirmarRechazo}
             >

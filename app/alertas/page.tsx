@@ -65,8 +65,8 @@ function EstadoAlerta({ estado }: { estado: "activa" | "resuelta" }) {
     <Badge
       className={
         estado === "activa"
-          ? "border border-amber-400/20 bg-amber-400/10 text-amber-300"
-          : "border border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
+          ? "border border-blue-300/20 bg-blue-300/10 text-blue-200"
+          : "border border-blue-400/20 bg-blue-400/10 text-blue-300"
       }
     >
       {estado === "activa" ? (
@@ -153,7 +153,7 @@ export default function AlertasPage() {
             </div>
           </Link>
           <div className="flex items-center gap-2 text-xs text-zinc-400">
-            <span className="size-1.5 rounded-full bg-amber-400" />
+            <span className="size-1.5 rounded-full bg-blue-400" />
             Alertas
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function AlertasPage() {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="-my-2 text-emerald-300 hover:bg-emerald-400/10 hover:text-emerald-200"
+                className="-my-2 text-blue-300 hover:bg-blue-400/10 hover:text-blue-200"
                 onClick={() => setSuccessMessage(null)}
               >
                 <X />
@@ -205,7 +205,7 @@ export default function AlertasPage() {
           <CardHeader className="flex flex-col gap-4 border-b border-white/[0.07] md:flex-row md:items-end md:justify-between">
             <div>
               <h2 className="flex items-center gap-2 text-base font-medium text-zinc-100">
-                <BellRing className="size-4 text-amber-400" />
+                <BellRing className="size-4 text-blue-400" />
                 Alertas registradas
               </h2>
               <p className="mt-1 text-sm text-zinc-400" aria-live="polite">
@@ -295,8 +295,8 @@ export default function AlertasPage() {
                             <p
                               className={
                                 sigueEnStockBajo
-                                  ? "mt-1 text-xs text-amber-300"
-                                  : "mt-1 text-xs text-emerald-300"
+                                  ? "mt-1 text-xs text-blue-300"
+                                  : "mt-1 text-xs text-blue-400"
                               }
                             >
                               {sigueEnStockBajo ? "Stock bajo" : "Nivel recuperado"}
@@ -389,8 +389,8 @@ export default function AlertasPage() {
                       <p
                         className={
                           sigueEnStockBajo
-                            ? "mt-3 text-xs font-medium text-amber-300"
-                            : "mt-3 text-xs font-medium text-emerald-300"
+                            ? "mt-3 text-xs font-medium text-blue-300"
+                            : "mt-3 text-xs font-medium text-blue-400"
                         }
                       >
                         {sigueEnStockBajo
