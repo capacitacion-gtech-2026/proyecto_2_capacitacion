@@ -163,7 +163,7 @@ export default function MovimientosPage() {
             </div>
           </Link>
           <div className="flex items-center gap-2 text-xs text-zinc-400">
-            <span className="size-1.5 rounded-full bg-emerald-400" />
+            <span className="size-1.5 rounded-full bg-blue-400" />
             Movimientos
           </div>
         </div>
@@ -200,7 +200,7 @@ export default function MovimientosPage() {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="-my-2 text-emerald-300 hover:bg-emerald-400/10 hover:text-emerald-200"
+                className="-my-2 text-blue-300 hover:bg-blue-400/10 hover:text-blue-200"
                 onClick={() => setSubmitSuccess(null)}
               >
                 <X />
@@ -282,7 +282,7 @@ export default function MovimientosPage() {
                 >
                   <div className="space-y-2">
                     <Label htmlFor="productoId">
-                      Producto <span className="text-rose-400">*</span>
+                      Producto <span className="text-blue-400">*</span>
                     </Label>
                     <select
                       id="productoId"
@@ -290,7 +290,7 @@ export default function MovimientosPage() {
                       aria-describedby={
                         errors.productoId ? "productoId-error" : undefined
                       }
-                      className="h-10 w-full rounded-lg border border-white/10 bg-[#0c0e13] px-3.5 text-sm text-zinc-100 outline-none transition-colors hover:border-white/15 focus-visible:border-blue-400/70 focus-visible:ring-2 focus-visible:ring-blue-400/15 aria-invalid:border-rose-400/70"
+                      className="h-10 w-full rounded-lg border border-white/10 bg-[#0c0e13] px-3.5 text-sm text-zinc-100 outline-none transition-colors hover:border-white/15 focus-visible:border-blue-400/70 focus-visible:ring-2 focus-visible:ring-blue-400/15 aria-invalid:border-blue-400/70"
                       {...register("productoId")}
                     >
                       <option value="">Selecciona un producto</option>
@@ -304,7 +304,7 @@ export default function MovimientosPage() {
                       <p
                         id="productoId-error"
                         role="alert"
-                        className="text-xs text-rose-400"
+                        className="text-xs text-blue-400"
                       >
                         {errors.productoId.message}
                       </p>
@@ -328,7 +328,7 @@ export default function MovimientosPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="tipo">
-                      Tipo <span className="text-rose-400">*</span>
+                      Tipo <span className="text-blue-400">*</span>
                     </Label>
                     <select
                       id="tipo"
@@ -342,7 +342,7 @@ export default function MovimientosPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="cantidad">
-                      Cantidad <span className="text-rose-400">*</span>
+                      Cantidad <span className="text-blue-400">*</span>
                     </Label>
                     <Input
                       id="cantidad"
@@ -359,7 +359,7 @@ export default function MovimientosPage() {
                       <p
                         id="cantidad-error"
                         role="alert"
-                        className="text-xs text-rose-400"
+                        className="text-xs text-blue-400"
                       >
                         {errors.cantidad.message}
                       </p>
@@ -368,7 +368,7 @@ export default function MovimientosPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="motivo">
-                      Motivo <span className="text-rose-400">*</span>
+                      Motivo <span className="text-blue-400">*</span>
                     </Label>
                     <Textarea
                       id="motivo"
@@ -382,7 +382,7 @@ export default function MovimientosPage() {
                       <p
                         id="motivo-error"
                         role="alert"
-                        className="text-xs text-rose-400"
+                        className="text-xs text-blue-400"
                       >
                         {errors.motivo.message}
                       </p>
@@ -490,8 +490,8 @@ export default function MovimientosPage() {
                           <Badge
                             className={
                               movimiento.tipo === "entrada"
-                                ? "border border-emerald-400/15 bg-emerald-400/10 text-emerald-300"
-                                : "border border-amber-400/15 bg-amber-400/10 text-amber-300"
+                                ? "border border-blue-400/15 bg-blue-400/10 text-blue-300"
+                                : "border border-blue-300/15 bg-blue-300/10 text-blue-200"
                             }
                           >
                             {movimiento.tipo === "entrada" ? (

@@ -144,7 +144,7 @@ export default function ProductosPage() {
               </div>
             </Link>
             <div className="flex items-center gap-2 text-xs text-zinc-400">
-              <span className="size-1.5 rounded-full bg-emerald-400" />
+              <span className="size-1.5 rounded-full bg-blue-400" />
               Productos
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function ProductosPage() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="-my-2 text-emerald-300 hover:bg-emerald-400/10 hover:text-emerald-200"
+                  className="-my-2 text-blue-300 hover:bg-blue-400/10 hover:text-blue-200"
                   onClick={() => setSubmitSuccess(null)}
                 >
                   <X />
@@ -278,7 +278,7 @@ export default function ProductosPage() {
                         <Badge
                           className={
                             producto.activo
-                              ? "border border-emerald-400/15 bg-emerald-400/10 text-emerald-300"
+                              ? "border border-blue-400/15 bg-blue-400/10 text-blue-300"
                               : "border border-white/[0.08] bg-white/[0.04] text-zinc-500"
                           }
                         >
@@ -320,7 +320,7 @@ export default function ProductosPage() {
 
             <div className="space-y-2">
               <Label htmlFor="sku">
-                SKU <span className="text-rose-400">*</span>
+                SKU <span className="text-blue-400">*</span>
               </Label>
               <Input
                 id="sku"
@@ -330,7 +330,7 @@ export default function ProductosPage() {
                 {...register("sku")}
               />
               {errors.sku && (
-                <p id="sku-error" role="alert" className="text-xs text-rose-400">
+                <p id="sku-error" role="alert" className="text-xs text-blue-400">
                   {errors.sku.message}
                 </p>
               )}
@@ -338,7 +338,7 @@ export default function ProductosPage() {
 
             <div className="space-y-2">
               <Label htmlFor="nombre">
-                Nombre del producto <span className="text-rose-400">*</span>
+                Nombre del producto <span className="text-blue-400">*</span>
               </Label>
               <Input
                 id="nombre"
@@ -351,7 +351,7 @@ export default function ProductosPage() {
                 <p
                   id="nombre-error"
                   role="alert"
-                  className="text-xs text-rose-400"
+                  className="text-xs text-blue-400"
                 >
                   {errors.nombre.message}
                 </p>
@@ -370,7 +370,7 @@ export default function ProductosPage() {
 
             <div className="space-y-2">
               <Label htmlFor="stockMinimo">
-                Stock mínimo <span className="text-rose-400">*</span>
+                Stock mínimo <span className="text-blue-400">*</span>
               </Label>
               <Input
                 id="stockMinimo"
@@ -389,7 +389,7 @@ export default function ProductosPage() {
                 <p
                   id="stockMinimo-error"
                   role="alert"
-                  className="text-xs text-rose-400"
+                  className="text-xs text-blue-400"
                 >
                   {errors.stockMinimo.message}
                 </p>

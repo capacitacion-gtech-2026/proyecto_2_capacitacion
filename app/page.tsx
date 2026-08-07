@@ -60,7 +60,7 @@ export default function Home() {
               href="/movimientos"
               className="group flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[#111318] p-5 transition-colors hover:border-white/[0.14] hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
                 <ArrowUpDown className="size-5" />
               </span>
               <div className="min-w-0 flex-1">
@@ -76,7 +76,7 @@ export default function Home() {
               href="/alertas"
               className="group flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[#111318] p-5 transition-colors hover:border-white/[0.14] hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
                 <BellRing className="size-5" />
               </span>
               <div className="min-w-0 flex-1">
@@ -92,7 +92,7 @@ export default function Home() {
               href="/solicitudes"
               className="group flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[#111318] p-5 transition-colors hover:border-white/[0.14] hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
                 <ClipboardList className="size-5" />
               </span>
               <div className="min-w-0 flex-1">
