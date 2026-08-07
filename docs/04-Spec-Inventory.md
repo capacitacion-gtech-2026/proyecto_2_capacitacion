@@ -1,8 +1,8 @@
 # Spec Inventory: Sistema de Gestión de Inventario
 
 > **ID:** SPECS-inventario
-> **Versión:** 1.1
-> **Fecha:** 2026-08-05
+> **Versión:** 1.2
+> **Fecha:** 2026-08-06
 > **Autor:** Angel Yahir Murillo Gallegos
 > **Status:** draft
 > **Padres:** REQ-inventario, ARCH-inventario
@@ -39,15 +39,20 @@ La columna **Archivo** distingue una Spec redactada de una necesidad todavía pe
 |---|---|---|---|---|---|---|
 | NF-001 | Integridad, idempotencia y manejo de fallos | NF | F-2.1, F-2.2, F-3.1, F-3.3 | F-2.1 AC4, AC6; F-2.2 AC4-AC6; F-3.1 AC5, AC6; F-3.3 AC3 | Existe | draft |
 | NF-002 | Actualización reactiva y tiempo de respuesta | NF | F-1.2, F-3.1, F-4.1 | F-1.2 AC5; F-3.1 AC3; F-4.1 AC6 | Pendiente | draft |
+| NF-003 | Concurrencia e idempotencia de solicitudes | NF | F-5.1, F-5.3 | F-5.1 AC8, AC9; F-5.3 AC6, AC7 | Existe | draft |
 | DA-001 | Modelo de datos del inventario | DA | F-1.1, F-1.3, F-2.1, F-2.2, F-2.3, F-3.1, F-3.2, F-3.3 | Entidades, relaciones y restricciones necesarias para los ACs de estas features | Existe | draft |
+| DA-002 | Modelo de solicitudes de stock | DA | F-5.1, F-5.2, F-5.3 | Entidad `solicitudesStock`, estados, transiciones, índices y relaciones | Existe | draft |
 | BE-001 | Crear y listar productos | BE | F-1.1, F-1.2 | F-1.1 AC1-AC5; F-1.2 AC1, AC4, AC5 | Existe | draft |
 | BE-002 | Registro de movimientos y actualización de existencia | BE | F-1.3, F-2.1, F-2.2 | F-1.3 AC5; F-2.1 AC1-AC6; F-2.2 AC1-AC6 | Pendiente | draft |
 | BE-003 | Flujo EDA de movimientos y alertas | BE | F-3.1, F-3.3 | F-3.1 AC1-AC6; F-3.3 AC1, AC3-AC6 | Existe | draft |
 | BE-004 | Consultas ampliadas del inventario | BE | F-1.2, F-2.3, F-3.2, F-4.1 | F-1.2 AC2, AC3; F-2.3 AC1-AC5; F-3.2 AC1-AC5; F-4.1 AC1-AC6 | Pendiente | draft |
+| BE-005 | Gestión de solicitudes de stock | BE | F-5.1, F-5.2, F-5.3 | F-5.1 AC1-AC9; F-5.2 AC1-AC5; F-5.3 AC1-AC7 | Existe | draft |
+| BE-006 | API HTTP de solicitudes de stock | BE | F-5.1, F-5.2, F-5.3 | F-5.1 AC5; F-5.2 AC1-AC5; F-5.3 AC1-AC7 | Existe | draft |
 | FE-001 | Interfaz de productos | FE | F-1.1, F-1.2 | F-1.1 AC1, AC2, AC4, AC5; F-1.2 AC1, AC4 | Existe | draft |
 | FE-002 | Interfaz de movimientos | FE | F-2.1, F-2.2, F-2.3 | F-2.1 AC1-AC3, AC5; F-2.2 AC1-AC3, AC5; F-2.3 AC1-AC5 | Pendiente | draft |
 | FE-003 | Interfaz de alertas | FE | F-3.2, F-3.3 | F-3.2 AC1-AC5; F-3.3 AC2-AC6 | Existe | draft |
 | FE-004 | Panel general del inventario | FE | F-4.1 | F-4.1 AC1-AC6 | Pendiente | draft |
+| FE-005 | Interfaz de solicitudes de stock | FE | F-5.1, F-5.2, F-5.3 | F-5.1 AC1-AC7; F-5.2 AC1-AC5; F-5.3 AC1-AC7 | Existe | draft |
 
 ## Cobertura por Feature
 
@@ -158,12 +163,49 @@ La cobertura distingue entre documentación existente y documentos pendientes. `
 | AC5: Mostrar movimientos recientes | BE-004, FE-004 | ⬜ Pendiente |
 | AC6: Actualizar el panel sin recarga manual | NF-002, BE-004, FE-004 | ⬜ Pendiente |
 
+### F-5.1: Crear solicitud de stock
+
+| AC | Spec(s) prevista(s) | Cobertura documental |
+|---|---|---|
+| AC1: Producto activo | DA-002, BE-005 | 🟨 Documentado en draft |
+| AC2: Cantidad entera positiva | DA-002, BE-005, FE-005 | 🟨 Documentado en draft |
+| AC3: Motivo obligatorio | DA-002, BE-005, FE-005 | 🟨 Documentado en draft |
+| AC4: Solicitante opcional | DA-002, BE-005, FE-005 | 🟨 Documentado en draft |
+| AC5: Creación desde interfaz o API | BE-005, BE-006, FE-005 | 🟨 Documentado en draft |
+| AC6: Estado inicial pendiente | DA-002, BE-005 | 🟨 Documentado en draft |
+| AC7: Solicitud pendiente no modifica existencia | DA-002, BE-005 | 🟨 Documentado en draft |
+| AC8: Idempotencia con misma clave y mismos datos | NF-003, DA-002, BE-005 | 🟨 Documentado en draft |
+| AC9: Clave reutilizada con datos distintos se rechaza | NF-003, DA-002, BE-005 | 🟨 Documentado en draft |
+
+### F-5.2: Consultar solicitudes de stock
+
+| AC | Spec(s) prevista(s) | Cobertura documental |
+|---|---|---|
+| AC1: Listado con campos principales | BE-005, FE-005 | 🟨 Documentado en draft |
+| AC2: Consulta por identificador | BE-005, BE-006, FE-005 | 🟨 Documentado en draft |
+| AC3: Filtrar por estado | BE-005, FE-005 | 🟨 Documentado en draft |
+| AC4: Actualización reactiva en tiempo real | NF-003, FE-005 | 🟨 Documentado en draft |
+| AC5: Distinguir origen interfaz o API | DA-002, FE-005 | 🟨 Documentado en draft |
+
+### F-5.3: Aprobar o rechazar solicitud de stock
+
+| AC | Spec(s) prevista(s) | Cobertura documental |
+|---|---|---|
+| AC1: Re-lectura transaccional de existencia al aprobar | NF-003, BE-005 | 🟨 Documentado en draft |
+| AC2: Con stock suficiente crea un movimiento de salida | DA-002, BE-005 | 🟨 Documentado en draft |
+| AC3: Sin stock guarda rechazada_sin_stock sin movimiento | NF-003, DA-002, BE-005 | 🟨 Documentado en draft |
+| AC4: Rechazo informa cantidad solicitada y existencia disponible | BE-005, BE-006, FE-005 | 🟨 Documentado en draft |
+| AC5: Rechazo manual sin movimientos | DA-002, BE-005, FE-005 | 🟨 Documentado en draft |
+| AC6: Solicitud resuelta no se procesa de nuevo | NF-003, BE-005 | 🟨 Documentado en draft |
+| AC7: Concurrencia sin existencia negativa | NF-003, BE-005 | 🟨 Documentado en draft |
+
 ## Gaps
 
-- Faltan los archivos `NF-002`, `BE-002`, `BE-004`, `FE-002` y `FE-004`; todos pertenecen principalmente a fases posteriores.
+- Faltan los archivos `NF-002`, `BE-002`, `BE-004`, `FE-002` y `FE-004`; todos pertenecen principalmente a fases anteriores a la 5.
 - F-1.2 AC2 y AC3 requieren ampliar la interfaz y las consultas después de la primera unidad.
 - F-1.3 permanece fuera del alcance actual y requiere ampliar `BE-001` y `FE-001` antes de considerarse cubierto.
 - `DA-001`, `BE-003`, `FE-003` y `NF-001` describen partes de la arquitectura objetivo que todavía no están implementadas.
+- Las specs `DA-002`, `BE-005`, `BE-006`, `FE-005` y `NF-003` (fase 5) están en draft; ninguna ha sido revisada ni aprobada.
 - Ninguna Spec está aprobada; la revisión y aprobación corresponden al responsable humano.
 
 ## Orden de creación y revisión sugerido
@@ -177,26 +219,30 @@ La cobertura distingue entre documentación existente y documentos pendientes. `
 
 | Tipo | Total identificado | Archivos existentes | Draft | Reviewed | Approved | Implemented |
 |---|---:|---:|---:|---:|---:|---:|
-| Non-functional | 2 | 1 | 2 | 0 | 0 | 0 |
-| Backend | 4 | 2 | 4 | 0 | 0 | 0 |
-| Frontend | 4 | 2 | 4 | 0 | 0 | 0 |
-| Data | 1 | 1 | 1 | 0 | 0 | 0 |
-| **Total** | **11** | **6** | **11** | **0** | **0** | **0** |
+| Non-functional | 3 | 2 | 3 | 0 | 0 | 0 |
+| Backend | 6 | 4 | 6 | 0 | 0 | 0 |
+| Frontend | 5 | 3 | 5 | 0 | 0 | 0 |
+| Data | 2 | 2 | 2 | 0 | 0 | 0 |
+| **Total** | **16** | **11** | **16** | **0** | **0** | **0** |
 
 ### Estado de cobertura actual
 
 | Concepto | Cantidad |
 |---|---:|
-| Specs identificadas | 11 |
-| Archivos de Spec existentes | 6 |
+| Specs identificadas | 16 |
+| Archivos de Spec existentes | 11 |
 | Archivos de Spec pendientes | 5 |
-| ACs con una Spec prevista | 55 |
+| ACs con una Spec prevista | 76 |
 | ACs de F-1.1 documentados en draft | 5 de 5 |
 | ACs de F-1.2 documentados completamente en draft | 2 de 5 |
+| ACs de F-5.1 documentados en draft | 9 de 9 |
+| ACs de F-5.2 documentados en draft | 5 de 5 |
+| ACs de F-5.3 documentados en draft | 7 de 7 |
 
 La cobertura documental no equivale a aprobación ni implementación. Un responsable humano debe revisar cada Spec antes de cambiarla a `reviewed` o `approved`.
 
 ## Changelog
 
+- v1.2 (2026-08-06): Se registraron DA-002, BE-005, BE-006, FE-005 y NF-003 en la matriz (todas en draft). Se añadieron secciones de cobertura para F-5.1, F-5.2 y F-5.3. Se actualizaron gaps, resumen numérico y cobertura.
 - v1.1 (2026-08-05): Se sincronizaron los archivos existentes, se eliminó el estado no estándar, se delimitó la primera unidad y se añadieron gaps y orden de creación.
 - v1.0 (2026-08-04): Inventario inicial de Specs previstas.

@@ -1,8 +1,8 @@
 # Vision: Sistema de Gestión de Inventario
 
 > **ID:** V-inventario
-> **Versión:** 1.1
-> **Fecha:** 2026-08-05
+> **Versión:** 1.2
+> **Fecha:** 2026-08-06
 > **Autor:** Angel Yahir Murillo Gallegos
 > **Status:** draft
 
@@ -20,6 +20,8 @@ Un sistema que registra cada movimiento de inventario (entrada o salida) en el m
 
 Funciona registrando productos con su existencia actual; cada movimiento (entrada o salida) se captura como un evento que actualiza la existencia y, si corresponde, dispara una alerta de bajo stock — sin que nadie tenga que revisar manualmente si "ya se está agotando algo".
 
+Incluye además solicitudes de stock: peticiones de salida que comienzan como pendientes y requieren una aprobación explícita antes de modificar la existencia. Una solicitud pendiente es solo un registro informativo; no reserva ni descuenta stock. Solo la aprobación —tras comprobar de nuevo la existencia disponible— crea el movimiento de salida correspondiente. Las solicitudes pueden originarse desde la interfaz o desde una API HTTP; ambas rutas siguen exactamente la misma lógica en Convex.
+
 ## Qué NO es
 
 No es un sistema de punto de venta (POS); no procesa cobros ni tickets de venta.
@@ -28,7 +30,7 @@ No es un sistema de compras ni gestión de proveedores (no genera órdenes de co
 
 No es un sistema de contabilidad ni facturación.
 
-No incluye autenticación, cuentas de usuario ni permisos por rol en la primera versión; será una demostración con datos ficticios.
+No incluye autenticación, cuentas de usuario ni permisos por rol en la primera versión; será una demostración con datos ficticios. La API de solicitudes de stock también utilizará datos ficticios mientras no exista autenticación.
 
 No maneja múltiples almacenes o ubicaciones en esta primera versión (queda como extensión futura, contemplada en el modelo de datos pero no implementada).
 
@@ -82,6 +84,7 @@ Simplicidad de alcance sobre cobertura amplia: el sistema resuelve bien el ciclo
 | 2 — Movimientos | Entradas, salidas, actualización de existencia e historial. |
 | 3 — Eventos y alertas | Evento de movimiento, consumidor idempotente y alertas de stock bajo. |
 | 4 — Consulta general | Panel resumido y revisión final del flujo completo. |
+| 5 — Solicitudes de stock | Modelo `solicitudesStock`, flujo pendiente → aprobada/rechazada, API HTTP y página `/solicitudes`. |
 
 ## Stack / Constraints técnicos
 
@@ -97,5 +100,6 @@ Arquitectura orientada a eventos (EDA) para el flujo: movimiento registrado → 
 
 ## Changelog
 
+- v1.2 (2026-08-06): Se incorporó la capability de solicitudes de stock (C-5): origen dual interfaz/API, estado pendiente sin reserva de stock, aprobación como único modificador de existencia, y la fase 5 al mapa de fases.
 - v1.1 (2026-08-05): Se adoptó la estructura Fractik actualizada, se delimitaron fases y se añadieron métricas, supuestos y riesgos medibles.
 - v1.0 (2026-07-31): Versión inicial de la visión del producto.
