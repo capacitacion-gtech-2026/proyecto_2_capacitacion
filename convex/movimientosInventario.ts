@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 
 const tipoMovimientoValidator = v.union(
   v.literal("entrada"),
@@ -33,6 +34,131 @@ const resultadoRegistroValidator = v.object({
   creadoEn: v.number(),
 });
 
+export async function registrarMovimientoInterno(
+  ctx: MutationCtx,
+  args: {
+    productoId: Id<"productos">;
+    tipo: "entrada" | "salida";
+    cantidad: number;
+    motivo: string;
+    claveIdempotencia: string;
+  }
+) {
+  const claveIdempotencia = args.claveIdempotencia.trim();
+
+  if (!claveIdempotencia) {
+    throw new ConvexError("La clave de idempotencia es obligatoria.");
+  }
+
+  const motivo = args.motivo.trim();
+
+  if (!motivo) {
+    throw new ConvexError("El motivo es obligatorio.");
+  }
+
+  const movimientoExistente = await ctx.db
+    .query("movimientosInventario")
+    .withIndex("por_clave_idempotencia", (q) =>
+      q.eq("claveIdempotencia", claveIdempotencia)
+    )
+    .first();
+
+  if (movimientoExistente) {
+    if (
+      movimientoExistente.productoId === args.productoId &&
+      movimientoExistente.tipo === args.tipo &&
+      movimientoExistente.cantidad === args.cantidad &&
+      movimientoExistente.motivo === motivo
+    ) {
+      return {
+        id: movimientoExistente._id,
+        productoId: movimientoExistente.productoId,
+        tipo: movimientoExistente.tipo,
+        cantidad: movimientoExistente.cantidad,
+        existenciaAnterior: movimientoExistente.existenciaAnterior,
+        existenciaResultante: movimientoExistente.existenciaResultante,
+        motivo: movimientoExistente.motivo,
+        creadoEn: movimientoExistente.creadoEn,
+      };
+    } else {
+      throw new ConvexError(
+        "La clave de idempotencia ya fue utilizada con datos diferentes."
+      );
+    }
+  }
+
+  const producto = await ctx.db.get("productos", args.productoId);
+
+  if (!producto) {
+    throw new ConvexError("El producto no está disponible.");
+  }
+
+  if (!producto.activo) {
+    throw new ConvexError(
+      "No se pueden registrar movimientos para este producto."
+    );
+  }
+
+  if (!Number.isInteger(args.cantidad) || args.cantidad <= 0) {
+    throw new ConvexError("Ingresa una cantidad entera mayor que cero.");
+  }
+
+  if (args.tipo === "salida" && args.cantidad > producto.existenciaActual) {
+    throw new ConvexError("No hay existencia suficiente.");
+  }
+
+  const existenciaAnterior = producto.existenciaActual;
+  const existenciaResultante =
+    args.tipo === "entrada"
+      ? existenciaAnterior + args.cantidad
+      : existenciaAnterior - args.cantidad;
+  const creadoEn = Date.now();
+
+  const id = await ctx.db.insert("movimientosInventario", {
+    productoId: args.productoId,
+    tipo: args.tipo,
+    cantidad: args.cantidad,
+    existenciaAnterior,
+    existenciaResultante,
+    motivo,
+    claveIdempotencia,
+    creadoEn,
+  });
+
+  await ctx.db.patch("productos", args.productoId, {
+    existenciaActual: existenciaResultante,
+    actualizadoEn: creadoEn,
+  });
+
+  const eventoId = await ctx.db.insert("eventosDominio", {
+    tipo: "MovimientoInventarioRegistrado",
+    movimientoId: id,
+    productoId: args.productoId,
+    existenciaAnterior,
+    existenciaResultante,
+    stockMinimo: producto.stockMinimo,
+    estado: "pendiente",
+    creadoEn,
+  });
+
+  await ctx.scheduler.runAfter(
+    0,
+    internal.eventos.procesarMovimientoInventarioRegistrado,
+    { eventoId }
+  );
+
+  return {
+    id,
+    productoId: args.productoId,
+    tipo: args.tipo,
+    cantidad: args.cantidad,
+    existenciaAnterior,
+    existenciaResultante,
+    motivo,
+    creadoEn,
+  };
+}
+
 export const registrar = mutation({
   args: {
     productoId: v.id("productos"),
@@ -43,122 +169,7 @@ export const registrar = mutation({
   },
   returns: resultadoRegistroValidator,
   handler: async (ctx, args) => {
-    const claveIdempotencia = args.claveIdempotencia.trim();
-
-    if (!claveIdempotencia) {
-      throw new ConvexError("La clave de idempotencia es obligatoria.");
-    }
-
-    const motivo = args.motivo.trim();
-
-    if (!motivo) {
-      throw new ConvexError("El motivo es obligatorio.");
-    }
-
-    const movimientoExistente = await ctx.db
-      .query("movimientosInventario")
-      .withIndex("por_clave_idempotencia", (q) =>
-        q.eq("claveIdempotencia", claveIdempotencia),
-      )
-      .first();
-
-    if (movimientoExistente) {
-      if (
-        movimientoExistente.productoId === args.productoId &&
-        movimientoExistente.tipo === args.tipo &&
-        movimientoExistente.cantidad === args.cantidad &&
-        movimientoExistente.motivo === motivo
-      ) {
-        return {
-          id: movimientoExistente._id,
-          productoId: movimientoExistente.productoId,
-          tipo: movimientoExistente.tipo,
-          cantidad: movimientoExistente.cantidad,
-          existenciaAnterior: movimientoExistente.existenciaAnterior,
-          existenciaResultante: movimientoExistente.existenciaResultante,
-          motivo: movimientoExistente.motivo,
-          creadoEn: movimientoExistente.creadoEn,
-        };
-      } else {
-        throw new ConvexError(
-          "La clave de idempotencia ya fue utilizada con datos diferentes.",
-        );
-      }
-    }
-
-    const producto = await ctx.db.get("productos", args.productoId);
-
-    if (!producto) {
-      throw new ConvexError("El producto no está disponible.");
-    }
-
-    if (!producto.activo) {
-      throw new ConvexError(
-        "No se pueden registrar movimientos para este producto.",
-      );
-    }
-
-    if (!Number.isInteger(args.cantidad) || args.cantidad <= 0) {
-      throw new ConvexError("Ingresa una cantidad entera mayor que cero.");
-    }
-
-    if (
-      args.tipo === "salida" &&
-      args.cantidad > producto.existenciaActual
-    ) {
-      throw new ConvexError("No hay existencia suficiente.");
-    }
-
-    const existenciaAnterior = producto.existenciaActual;
-    const existenciaResultante =
-      args.tipo === "entrada"
-        ? existenciaAnterior + args.cantidad
-        : existenciaAnterior - args.cantidad;
-    const creadoEn = Date.now();
-
-    const id = await ctx.db.insert("movimientosInventario", {
-      productoId: args.productoId,
-      tipo: args.tipo,
-      cantidad: args.cantidad,
-      existenciaAnterior,
-      existenciaResultante,
-      motivo,
-      claveIdempotencia,
-      creadoEn,
-    });
-
-    await ctx.db.patch("productos", args.productoId, {
-      existenciaActual: existenciaResultante,
-      actualizadoEn: creadoEn,
-    });
-
-    const eventoId = await ctx.db.insert("eventosDominio", {
-      tipo: "MovimientoInventarioRegistrado",
-      movimientoId: id,
-      productoId: args.productoId,
-      existenciaAnterior,
-      existenciaResultante,
-      stockMinimo: producto.stockMinimo,
-      estado: "pendiente",
-      creadoEn,
-    });
-
-    await ctx.scheduler.runAfter(
-      0,
-      internal.eventos.procesarMovimientoInventarioRegistrado,
-      { eventoId },
-    );
-
-    return {
-      id,
-      productoId: args.productoId,
-      tipo: args.tipo,
-      cantidad: args.cantidad,
-      existenciaAnterior,
-      existenciaResultante,
-      motivo,
-      creadoEn,
-    };
+    return await registrarMovimientoInterno(ctx, args);
   },
 });
 
@@ -172,7 +183,7 @@ export const listar = query({
       ? await ctx.db
           .query("movimientosInventario")
           .withIndex("por_producto_creado_en", (q) =>
-            q.eq("productoId", args.productoId!),
+            q.eq("productoId", args.productoId!)
           )
           .order("desc")
           .take(100)
@@ -191,7 +202,7 @@ export const listar = query({
           productoSku: producto?.sku ?? "Producto no disponible",
           productoNombre: producto?.nombre ?? "Producto no disponible",
         };
-      }),
+      })
     );
   },
 });

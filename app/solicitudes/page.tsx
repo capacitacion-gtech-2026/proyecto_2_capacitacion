@@ -30,6 +30,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -86,7 +94,7 @@ function obtenerMensajeError(error: unknown) {
     return error.data;
   }
 
-  return "No se pudo crear la solicitud. Verifica los datos e inténtalo nuevamente.";
+  return "No se pudo completar la operación. Inténtalo nuevamente.";
 }
 
 function BadgeEstado({ estado }: { estado: Doc<"solicitudesStock">["estado"] }) {
@@ -149,12 +157,25 @@ export default function SolicitudesPage() {
     crypto.randomUUID()
   );
 
+  const [solicitudAprobar, setSolicitudAprobar] =
+    useState<Doc<"solicitudesStock"> | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
+  const [aprobarError, setAprobarError] = useState<string | null>(null);
+
+  const [solicitudRechazar, setSolicitudRechazar] =
+    useState<Doc<"solicitudesStock"> | null>(null);
+  const [motivoRechazoInput, setMotivoRechazoInput] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [rechazarError, setRechazarError] = useState<string | null>(null);
+
   const productos = useQuery(api.productos.listar);
   const solicitudes = useQuery(
     api.solicitudesStock.listar,
     filtroEstado === "todas" ? {} : { estado: filtroEstado }
   );
   const crearSolicitud = useMutation(api.solicitudesStock.crear);
+  const aprobarSolicitud = useMutation(api.solicitudesStock.aprobar);
+  const rechazarSolicitud = useMutation(api.solicitudesStock.rechazar);
 
   const {
     register,
@@ -218,6 +239,70 @@ export default function SolicitudesPage() {
     }
   };
 
+  const confirmarAprobacion = async () => {
+    if (!solicitudAprobar) return;
+    setAprobarError(null);
+    setIsApproving(true);
+
+    try {
+      const res = await aprobarSolicitud({
+        solicitudId: solicitudAprobar._id,
+      });
+
+      const productoNombre =
+        productos?.find((p) => p._id === solicitudAprobar.productoId)?.nombre ??
+        "el producto";
+
+      if (res.resultado === "aprobada") {
+        setSubmitSuccess(
+          `Solicitud aprobada exitosamente para ${productoNombre}. Movimiento de salida registrado.`
+        );
+      } else {
+        setSubmitSuccess(
+          `Solicitud rechazada automáticamente por stock insuficiente para ${productoNombre}. ${res.mensaje}`
+        );
+      }
+      setSolicitudAprobar(null);
+    } catch (error: unknown) {
+      setAprobarError(obtenerMensajeError(error));
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const confirmarRechazo = async () => {
+    if (!solicitudRechazar) return;
+    if (!motivoRechazoInput.trim()) {
+      setRechazarError("El motivo del rechazo es obligatorio.");
+      return;
+    }
+
+    setRechazarError(null);
+    setIsRejecting(true);
+
+    try {
+      await rechazarSolicitud({
+        solicitudId: solicitudRechazar._id,
+        motivoRechazo: motivoRechazoInput.trim(),
+      });
+
+      const productoNombre =
+        productos?.find((p) => p._id === solicitudRechazar.productoId)?.nombre ??
+        "el producto";
+
+      setSubmitSuccess(
+        `Solicitud de ${productoNombre} rechazada manualmente.`
+      );
+
+      setSolicitudRechazar(null);
+      setMotivoRechazoInput("");
+    } catch (error: unknown) {
+      setRechazarError(obtenerMensajeError(error));
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#090b10] text-zinc-100">
       <header className="border-b border-white/[0.07] bg-[#090b10]/90 backdrop-blur">
@@ -251,7 +336,7 @@ export default function SolicitudesPage() {
               Solicitudes de stock
             </h1>
             <p className="mt-2 text-sm text-zinc-400">
-              Crea peticiones de salida y consulta su estado en tiempo real.
+              Crea peticiones de salida, consúltalas y aprueba o rechaza solicitudes pendientes.
             </p>
           </div>
           <Link
@@ -541,17 +626,17 @@ export default function SolicitudesPage() {
               ) : (
                 <>
                   <div className="hidden md:block">
-                    <Table className="min-w-[900px] text-zinc-300">
+                    <Table className="min-w-[950px] text-zinc-300">
                       <TableHeader className="bg-black/15 text-[11px] uppercase tracking-wider text-zinc-400">
                         <TableRow>
                           <TableHead>Fecha</TableHead>
                           <TableHead>Producto</TableHead>
                           <TableHead className="text-right">Cantidad</TableHead>
-                          <TableHead>Motivo / Solicitante</TableHead>
+                          <TableHead>Motivo / Detalles</TableHead>
                           <TableHead>Origen</TableHead>
                           <TableHead>Estado</TableHead>
-                          <TableHead className="text-right">Stock al solicitar</TableHead>
                           <TableHead className="text-right">Stock actual</TableHead>
+                          <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -592,28 +677,17 @@ export default function SolicitudesPage() {
                                     Rechazo: {solicitud.motivoRechazo}
                                   </p>
                                 )}
+                                {solicitud.movimientoId && (
+                                  <p className="mt-1 font-mono text-[10px] text-emerald-400">
+                                    Movimiento: {solicitud.movimientoId}
+                                  </p>
+                                )}
                               </TableCell>
                               <TableCell>
                                 <BadgeOrigen origen={solicitud.origen} />
                               </TableCell>
                               <TableCell>
                                 <BadgeEstado estado={solicitud.estado} />
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <p className="font-mono tabular-nums text-zinc-300">
-                                  {solicitud.existenciaAlSolicitar}
-                                </p>
-                                <p
-                                  className={
-                                    solicitud.disponibleAlSolicitar
-                                      ? "text-[10px] text-emerald-400"
-                                      : "text-[10px] text-amber-400"
-                                  }
-                                >
-                                  {solicitud.disponibleAlSolicitar
-                                    ? "Suficiente"
-                                    : "Insuficiente"}
-                                </p>
                               </TableCell>
                               <TableCell className="text-right">
                                 <p className="font-mono tabular-nums text-zinc-300">
@@ -630,6 +704,34 @@ export default function SolicitudesPage() {
                                     ? "Alcanza hoy"
                                     : "No alcanza hoy"}
                                 </p>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {solicitud.estado === "pendiente" ? (
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      className="h-8 bg-emerald-600 px-2.5 text-xs hover:bg-emerald-500"
+                                      onClick={() => setSolicitudAprobar(solicitud)}
+                                    >
+                                      Aprobar
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-8 px-2.5 text-xs text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
+                                      onClick={() => {
+                                        setSolicitudRechazar(solicitud);
+                                        setMotivoRechazoInput("");
+                                      }}
+                                    >
+                                      Rechazar
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-zinc-500">—</span>
+                                )}
                               </TableCell>
                             </TableRow>
                           );
@@ -728,9 +830,40 @@ export default function SolicitudesPage() {
                             </p>
                           )}
 
+                          {solicitud.movimientoId && (
+                            <p className="mt-1 font-mono text-xs text-emerald-400">
+                              Movimiento: {solicitud.movimientoId}
+                            </p>
+                          )}
+
                           <p className="mt-3 border-t border-white/[0.06] pt-2 text-[11px] text-zinc-500">
                             Creada: {formatoFecha.format(new Date(solicitud.creadaEn))}
                           </p>
+
+                          {solicitud.estado === "pendiente" && (
+                            <div className="mt-3 flex gap-2 border-t border-white/[0.06] pt-3">
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="flex-1 bg-emerald-600 text-xs hover:bg-emerald-500"
+                                onClick={() => setSolicitudAprobar(solicitud)}
+                              >
+                                Aprobar
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 text-xs text-rose-300 hover:bg-rose-500/10 hover:text-rose-200"
+                                onClick={() => {
+                                  setSolicitudRechazar(solicitud);
+                                  setMotivoRechazoInput("");
+                                }}
+                              >
+                                Rechazar
+                              </Button>
+                            </div>
+                          )}
                         </article>
                       );
                     })}
@@ -741,6 +874,165 @@ export default function SolicitudesPage() {
           </div>
         )}
       </main>
+
+      <Dialog
+        open={solicitudAprobar !== null}
+        onOpenChange={(open) => {
+          if (!open && !isApproving) {
+            setSolicitudAprobar(null);
+            setAprobarError(null);
+          }
+        }}
+      >
+        <DialogContent className="p-6">
+          <DialogHeader>
+            <DialogTitle>Aprobar solicitud de stock</DialogTitle>
+            <DialogDescription>
+              Se comprobará nuevamente la existencia en tiempo real antes de registrar la salida de inventario.
+            </DialogDescription>
+          </DialogHeader>
+
+          {solicitudAprobar && (
+            <div className="rounded-lg border border-white/[0.08] bg-black/15 p-4">
+              <p className="text-sm font-medium text-zinc-100">
+                {productos?.find((p) => p._id === solicitudAprobar.productoId)?.nombre ??
+                  "Producto"}
+              </p>
+              <p className="mt-1 font-mono text-xs text-blue-300">
+                {productos?.find((p) => p._id === solicitudAprobar.productoId)?.sku ?? "—"}
+              </p>
+              <p className="mt-3 text-sm text-zinc-300">
+                Cantidad solicitada:{" "}
+                <strong className="text-zinc-100">
+                  {solicitudAprobar.cantidadSolicitada} unidades
+                </strong>
+              </p>
+              <p className="mt-1 text-xs text-zinc-400">
+                Motivo: {solicitudAprobar.motivo}
+              </p>
+            </div>
+          )}
+
+          {aprobarError && (
+            <Alert variant="destructive">
+              <AlertCircle />
+              <AlertDescription>{aprobarError}</AlertDescription>
+            </Alert>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isApproving}
+              onClick={() => {
+                setSolicitudAprobar(null);
+                setAprobarError(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="bg-emerald-600 hover:bg-emerald-500"
+              disabled={isApproving || !solicitudAprobar}
+              onClick={confirmarAprobacion}
+            >
+              {isApproving ? (
+                <>
+                  <Loader2 className="animate-spin motion-reduce:animate-none" />
+                  Aprobando...
+                </>
+              ) : (
+                "Confirmar aprobación"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={solicitudRechazar !== null}
+        onOpenChange={(open) => {
+          if (!open && !isRejecting) {
+            setSolicitudRechazar(null);
+            setRechazarError(null);
+          }
+        }}
+      >
+        <DialogContent className="p-6">
+          <DialogHeader>
+            <DialogTitle>Rechazar solicitud de stock</DialogTitle>
+            <DialogDescription>
+              El rechazo manual cancela la solicitud sin realizar movimientos de inventario.
+            </DialogDescription>
+          </DialogHeader>
+
+          {solicitudRechazar && (
+            <div className="rounded-lg border border-white/[0.08] bg-black/15 p-4">
+              <p className="text-sm font-medium text-zinc-100">
+                {productos?.find((p) => p._id === solicitudRechazar.productoId)?.nombre ??
+                  "Producto"}
+              </p>
+              <p className="mt-1 font-mono text-xs text-blue-300">
+                {productos?.find((p) => p._id === solicitudRechazar.productoId)?.sku ?? "—"}
+              </p>
+              <p className="mt-2 text-xs text-zinc-400">
+                Cantidad solicitada: {solicitudRechazar.cantidadSolicitada} unidades
+              </p>
+            </div>
+          )}
+
+          {rechazarError && (
+            <Alert variant="destructive">
+              <AlertCircle />
+              <AlertDescription>{rechazarError}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="motivoRechazoInput">
+              Motivo del rechazo <span className="text-rose-400">*</span>
+            </Label>
+            <Textarea
+              id="motivoRechazoInput"
+              rows={3}
+              placeholder="Ingresa la razón del rechazo manual"
+              value={motivoRechazoInput}
+              onChange={(e) => setMotivoRechazoInput(e.target.value)}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isRejecting}
+              onClick={() => {
+                setSolicitudRechazar(null);
+                setRechazarError(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="bg-rose-600 hover:bg-rose-500"
+              disabled={isRejecting || !solicitudRechazar || !motivoRechazoInput.trim()}
+              onClick={confirmarRechazo}
+            >
+              {isRejecting ? (
+                <>
+                  <Loader2 className="animate-spin motion-reduce:animate-none" />
+                  Rechazando...
+                </>
+              ) : (
+                "Confirmar rechazo"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

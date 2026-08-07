@@ -1,5 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { registrarMovimientoInterno } from "./movimientosInventario";
 
 export const crear = mutation({
   args: {
@@ -120,5 +121,124 @@ export const obtener = query({
   },
   handler: async (ctx, args) => {
     return await ctx.db.get("solicitudesStock", args.solicitudId);
+  },
+});
+
+export const aprobar = mutation({
+  args: {
+    solicitudId: v.id("solicitudesStock"),
+  },
+  handler: async (ctx, args) => {
+    const solicitud = await ctx.db.get("solicitudesStock", args.solicitudId);
+    if (!solicitud) {
+      throw new ConvexError("La solicitud no existe.");
+    }
+
+    if (solicitud.estado !== "pendiente") {
+      if (solicitud.estado === "aprobada") {
+        return {
+          resultado: "aprobada",
+          movimientoId: solicitud.movimientoId!,
+        };
+      }
+      if (solicitud.estado === "rechazada_sin_stock") {
+        const existenciaDisp = solicitud.existenciaDisponibleAlResolver ?? 0;
+        return {
+          resultado: "rechazada",
+          motivo: "stock_insuficiente",
+          mensaje: `La solicitud requiere ${solicitud.cantidadSolicitada} unidades, pero solamente quedan ${existenciaDisp} disponibles.`,
+          cantidadSolicitada: solicitud.cantidadSolicitada,
+          existenciaDisponible: existenciaDisp,
+        };
+      }
+      throw new ConvexError("La solicitud ya fue resuelta.");
+    }
+
+    const producto = await ctx.db.get("productos", solicitud.productoId);
+    if (!producto) {
+      throw new ConvexError("El producto no está disponible.");
+    }
+
+    if (!producto.activo) {
+      throw new ConvexError("No se pueden registrar solicitudes para este producto.");
+    }
+
+    const existenciaVigente = producto.existenciaActual;
+    const ahora = Date.now();
+
+    if (existenciaVigente >= solicitud.cantidadSolicitada) {
+      const claveIdempotenciaMovimiento = `solicitud-stock:${solicitud._id}`;
+      const movimiento = await registrarMovimientoInterno(ctx, {
+        productoId: solicitud.productoId,
+        tipo: "salida",
+        cantidad: solicitud.cantidadSolicitada,
+        motivo: `Aprobación de solicitud: ${solicitud.motivo}`,
+        claveIdempotencia: claveIdempotenciaMovimiento,
+      });
+
+      await ctx.db.patch("solicitudesStock", solicitud._id, {
+        estado: "aprobada",
+        movimientoId: movimiento.id,
+        existenciaDisponibleAlResolver: existenciaVigente,
+        resueltaEn: ahora,
+        actualizadaEn: ahora,
+      });
+
+      return {
+        resultado: "aprobada",
+        movimientoId: movimiento.id,
+      };
+    } else {
+      await ctx.db.patch("solicitudesStock", solicitud._id, {
+        estado: "rechazada_sin_stock",
+        existenciaDisponibleAlResolver: existenciaVigente,
+        resueltaEn: ahora,
+        actualizadaEn: ahora,
+      });
+
+      return {
+        resultado: "rechazada",
+        motivo: "stock_insuficiente",
+        mensaje: `La solicitud requiere ${solicitud.cantidadSolicitada} unidades, pero solamente quedan ${existenciaVigente} disponibles.`,
+        cantidadSolicitada: solicitud.cantidadSolicitada,
+        existenciaDisponible: existenciaVigente,
+      };
+    }
+  },
+});
+
+export const rechazar = mutation({
+  args: {
+    solicitudId: v.id("solicitudesStock"),
+    motivoRechazo: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const motivoRechazo = args.motivoRechazo.trim();
+    if (!motivoRechazo) {
+      throw new ConvexError("El motivo es obligatorio.");
+    }
+
+    const solicitud = await ctx.db.get("solicitudesStock", args.solicitudId);
+    if (!solicitud) {
+      throw new ConvexError("La solicitud no existe.");
+    }
+
+    if (solicitud.estado !== "pendiente") {
+      throw new ConvexError("La solicitud ya fue resuelta.");
+    }
+
+    const producto = await ctx.db.get("productos", solicitud.productoId);
+    const existenciaVigente = producto?.existenciaActual ?? solicitud.existenciaAlSolicitar;
+    const ahora = Date.now();
+
+    await ctx.db.patch("solicitudesStock", solicitud._id, {
+      estado: "rechazada",
+      motivoRechazo,
+      existenciaDisponibleAlResolver: existenciaVigente,
+      resueltaEn: ahora,
+      actualizadaEn: ahora,
+    });
+
+    return (await ctx.db.get("solicitudesStock", solicitud._id))!;
   },
 });
