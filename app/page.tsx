@@ -4,6 +4,7 @@ import {
   ArrowUpDown,
   BellRing,
   Boxes,
+  ClipboardList,
   Package,
 } from "lucide-react";
 
@@ -82,6 +83,22 @@ export default function Home() {
                 <h2 className="text-sm font-medium text-zinc-200">Alertas</h2>
                 <p className="mt-1 text-sm text-zinc-600">
                   Consulta y resuelve avisos de stock bajo.
+                </p>
+              </div>
+              <ArrowRight className="size-4 text-zinc-500 transition-colors group-hover:text-zinc-200" />
+            </Link>
+
+            <Link
+              href="/solicitudes"
+              className="group flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[#111318] p-5 transition-colors hover:border-white/[0.14] hover:bg-white/[0.045] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60"
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
+                <ClipboardList className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-medium text-zinc-200">Solicitudes</h2>
+                <p className="mt-1 text-sm text-zinc-600">
+                  Crea y consulta solicitudes de stock en tiempo real.
                 </p>
               </div>
               <ArrowRight className="size-4 text-zinc-500 transition-colors group-hover:text-zinc-200" />
