@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - refactor/home-page
+      - prueba-github-actions
   pull_request:
     branches:
       - main
-      - refactor/home-page
+      - prueba-github-actions
 
 jobs:
   lint:
@@ -25,7 +25,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Instalar dependencias
         run: pnpm install
@@ -48,7 +48,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Instalar dependencias
         run: pnpm install
