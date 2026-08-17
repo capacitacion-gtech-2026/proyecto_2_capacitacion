@@ -1,5 +1,7 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+The project includes a Docker image publishing workflow for the `main` branch.
+
 ## Getting Started
 
 First, run the development server:
