@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - prueba-github-actions
+
   pull_request:
     branches:
       - main
@@ -20,18 +21,25 @@ concurrency:
 jobs:
   quality:
     name: ${{ matrix.name }}
+
     runs-on: blacksmith-2vcpu-ubuntu-2404
+
     timeout-minutes: 15
+
     strategy:
       fail-fast: false
+
       matrix:
         include:
           - name: Lint
             command: pnpm run lint
+
           - name: Typecheck
             command: pnpm exec tsc --noEmit
+
           - name: Tests
             command: pnpm run test
+
           - name: Build
             command: pnpm run build
 
@@ -54,9 +62,11 @@ jobs:
       - name: Ejecutar ${{ matrix.name }}
         run: ${{ matrix.command }}
 
+
   docker:
     name: Construir y desplegar Docker en EC2
 
+    # Por ahora solamente despliega la rama de pruebas.
     if: github.event_name == 'push' && github.ref_name == 'prueba-github-actions'
 
     needs: quality
@@ -69,10 +79,42 @@ jobs:
       - name: Descargar repositorio
         uses: actions/checkout@v4
 
+
+      - name: Verificar variables necesarias
+        env:
+          NEXT_PUBLIC_CONVEX_URL: ${{ vars.NEXT_PUBLIC_CONVEX_URL }}
+          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ vars.NEXT_PUBLIC_CONVEX_SITE_URL }}
+          EC2_HOST: ${{ vars.EC2_HOST }}
+          EC2_USER: ${{ vars.EC2_USER }}
+        run: |
+          if [ -z "$NEXT_PUBLIC_CONVEX_URL" ]; then
+            echo "ERROR: NEXT_PUBLIC_CONVEX_URL no está configurada"
+            exit 1
+          fi
+
+          if [ -z "$NEXT_PUBLIC_CONVEX_SITE_URL" ]; then
+            echo "ERROR: NEXT_PUBLIC_CONVEX_SITE_URL no está configurada"
+            exit 1
+          fi
+
+          if [ -z "$EC2_HOST" ]; then
+            echo "ERROR: EC2_HOST no está configurada"
+            exit 1
+          fi
+
+          if [ -z "$EC2_USER" ]; then
+            echo "ERROR: EC2_USER no está configurada"
+            exit 1
+          fi
+
+          echo "Variables configuradas correctamente"
+
+
       - name: Configurar Docker Builder de Blacksmith
         uses: useblacksmith/setup-docker-builder@v2
         with:
           cache-key: Dockerfile
+
 
       - name: Construir imagen Docker
         uses: useblacksmith/build-push-action@v2
@@ -82,8 +124,19 @@ jobs:
           tags: proyecto-2-capacitacion:ec2
           build-args: |
             NEXT_PUBLIC_CONVEX_URL=${{ vars.NEXT_PUBLIC_CONVEX_URL }}
+            NEXT_PUBLIC_CONVEX_SITE_URL=${{ vars.NEXT_PUBLIC_CONVEX_SITE_URL }}
 
-      - name: Preparar conexion SSH
+
+      - name: Verificar imagen Docker
+        run: |
+          docker images proyecto-2-capacitacion
+
+          docker image inspect proyecto-2-capacitacion:ec2 > /dev/null
+
+          echo "Imagen Docker construida correctamente"
+
+
+      - name: Preparar conexión SSH
         env:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
           EC2_HOST: ${{ vars.EC2_HOST }}
@@ -96,10 +149,13 @@ jobs:
 
           ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
 
+
       - name: Exportar imagen Docker
         run: |
-          docker save proyecto-2-capacitacion:ec2 \
+          docker save \
+            proyecto-2-capacitacion:ec2 \
             -o proyecto-2-capacitacion.tar
+
 
       - name: Copiar imagen Docker a EC2
         env:
@@ -111,7 +167,8 @@ jobs:
             proyecto-2-capacitacion.tar \
             "$EC2_USER@$EC2_HOST:/tmp/proyecto-2-capacitacion.tar"
 
-      - name: Desplegar contenedor en EC2
+
+      - name: Desplegar aplicación en EC2
         env:
           EC2_HOST: ${{ vars.EC2_HOST }}
           EC2_USER: ${{ vars.EC2_USER }}
@@ -120,24 +177,43 @@ jobs:
             -i ~/.ssh/ec2.pem \
             "$EC2_USER@$EC2_HOST" << 'EOF'
 
-            sudo docker load \
-              -i /tmp/proyecto-2-capacitacion.tar
+          set -e
 
-            sudo docker rm \
-              -f proyecto-2 \
-              2>/dev/null || true
+          echo "Cargando nueva imagen..."
 
-            sudo docker run \
-              -d \
-              --name proyecto-2 \
-              --restart unless-stopped \
-              -p 3000:3000 \
-              proyecto-2-capacitacion:ec2
+          sudo docker load \
+            -i /tmp/proyecto-2-capacitacion.tar
 
-            rm -f /tmp/proyecto-2-capacitacion.tar
 
-            sudo docker image prune -f
+          echo "Eliminando contenedor anterior..."
 
-            sudo docker ps
+          sudo docker rm \
+            -f proyecto-2 \
+            2>/dev/null || true
+
+
+          echo "Iniciando nuevo contenedor..."
+
+          sudo docker run \
+            -d \
+            --name proyecto-2 \
+            --restart unless-stopped \
+            -p 3000:3000 \
+            proyecto-2-capacitacion:ec2
+
+
+          echo "Eliminando archivo temporal..."
+
+          rm -f /tmp/proyecto-2-capacitacion.tar
+
+
+          echo "Limpiando imágenes Docker antiguas..."
+
+          sudo docker image prune -f
+
+
+          echo "Contenedores activos:"
+
+          sudo docker ps
 
           EOF
