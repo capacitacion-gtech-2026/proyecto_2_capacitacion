@@ -55,11 +55,16 @@ jobs:
         run: ${{ matrix.command }}
 
   docker:
-    name: Construir y publicar Docker
-    if: github.event_name == 'push'
+    name: Construir y desplegar Docker en EC2
+
+    if: github.event_name == 'push' && github.ref_name == 'prueba-github-actions'
+
     needs: quality
+
     runs-on: blacksmith-2vcpu-ubuntu-2404
+
     timeout-minutes: 30
+
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
@@ -69,30 +74,68 @@ jobs:
         with:
           cache-key: Dockerfile
 
-      - name: Iniciar sesion en Docker Hub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Preparar etiquetas Docker
-        id: docker-tags
-        env:
-          IMAGE_NAME: ${{ vars.DOCKERHUB_USERNAME }}/proyecto-2-capacitacion
-        run: |
-          {
-            echo "tags<<EOF"
-            echo "${IMAGE_NAME}:${GITHUB_REF_NAME}"
-            echo "${IMAGE_NAME}:${GITHUB_SHA}"
-            if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
-              echo "${IMAGE_NAME}:latest"
-            fi
-            echo "EOF"
-          } >> "${GITHUB_OUTPUT}"
-
-      - name: Construir y publicar imagen Docker
+      - name: Construir imagen Docker
         uses: useblacksmith/build-push-action@v2
         with:
           context: .
-          push: true
-          tags: ${{ steps.docker-tags.outputs.tags }}
+          load: true
+          tags: proyecto-2-capacitacion:ec2
+
+      - name: Preparar conexion SSH
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ vars.EC2_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+
+          echo "$EC2_SSH_KEY" > ~/.ssh/ec2.pem
+
+          chmod 600 ~/.ssh/ec2.pem
+
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+
+      - name: Exportar imagen Docker
+        run: |
+          docker save proyecto-2-capacitacion:ec2 \
+            -o proyecto-2-capacitacion.tar
+
+      - name: Copiar imagen Docker a EC2
+        env:
+          EC2_HOST: ${{ vars.EC2_HOST }}
+          EC2_USER: ${{ vars.EC2_USER }}
+        run: |
+          scp \
+            -i ~/.ssh/ec2.pem \
+            proyecto-2-capacitacion.tar \
+            "$EC2_USER@$EC2_HOST:/tmp/proyecto-2-capacitacion.tar"
+
+      - name: Desplegar contenedor en EC2
+        env:
+          EC2_HOST: ${{ vars.EC2_HOST }}
+          EC2_USER: ${{ vars.EC2_USER }}
+        run: |
+          ssh \
+            -i ~/.ssh/ec2.pem \
+            "$EC2_USER@$EC2_HOST" << 'EOF'
+
+            sudo docker load \
+              -i /tmp/proyecto-2-capacitacion.tar
+
+            sudo docker rm \
+              -f proyecto-2 \
+              2>/dev/null || true
+
+            sudo docker run \
+              -d \
+              --name proyecto-2 \
+              --restart unless-stopped \
+              -p 3000:3000 \
+              proyecto-2-capacitacion:ec2
+
+            rm -f /tmp/proyecto-2-capacitacion.tar
+
+            sudo docker image prune -f
+
+            sudo docker ps
+
+          EOF
