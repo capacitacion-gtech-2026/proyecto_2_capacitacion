@@ -80,6 +80,8 @@ jobs:
           context: .
           load: true
           tags: proyecto-2-capacitacion:ec2
+          build-args: |
+            NEXT_PUBLIC_CONVEX_URL=${{ vars.NEXT_PUBLIC_CONVEX_URL }}
 
       - name: Preparar conexion SSH
         env:
