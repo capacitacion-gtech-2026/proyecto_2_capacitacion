@@ -9,7 +9,6 @@ on:
   pull_request:
     branches:
       - main
-      - prueba-github-actions
 
 permissions:
   contents: read
@@ -21,14 +20,11 @@ concurrency:
 jobs:
   quality:
     name: ${{ matrix.name }}
-
     runs-on: blacksmith-2vcpu-ubuntu-2404
-
     timeout-minutes: 15
 
     strategy:
       fail-fast: false
-
       matrix:
         include:
           - name: Lint
@@ -64,10 +60,9 @@ jobs:
 
 
   docker:
-    name: Construir y desplegar Docker en EC2
+    name: Construir y publicar imagen en ECR
 
-    # Por ahora solamente despliega la rama de pruebas.
-    if: github.event_name == 'push' && github.ref_name == 'prueba-github-actions'
+    if: github.event_name == 'push'
 
     needs: quality
 
@@ -80,13 +75,35 @@ jobs:
         uses: actions/checkout@v4
 
 
-      - name: Verificar variables necesarias
+      - name: Verificar configuración
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
           NEXT_PUBLIC_CONVEX_URL: ${{ vars.NEXT_PUBLIC_CONVEX_URL }}
           NEXT_PUBLIC_CONVEX_SITE_URL: ${{ vars.NEXT_PUBLIC_CONVEX_SITE_URL }}
-          EC2_HOST: ${{ vars.EC2_HOST }}
-          EC2_USER: ${{ vars.EC2_USER }}
         run: |
+          if [ -z "$AWS_ACCESS_KEY_ID" ]; then
+            echo "ERROR: AWS_ACCESS_KEY_ID no está configurado"
+            exit 1
+          fi
+
+          if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "ERROR: AWS_SECRET_ACCESS_KEY no está configurado"
+            exit 1
+          fi
+
+          if [ -z "$AWS_REGION" ]; then
+            echo "ERROR: AWS_REGION no está configurada"
+            exit 1
+          fi
+
+          if [ -z "$ECR_REPOSITORY" ]; then
+            echo "ERROR: ECR_REPOSITORY no está configurado"
+            exit 1
+          fi
+
           if [ -z "$NEXT_PUBLIC_CONVEX_URL" ]; then
             echo "ERROR: NEXT_PUBLIC_CONVEX_URL no está configurada"
             exit 1
@@ -97,17 +114,20 @@ jobs:
             exit 1
           fi
 
-          if [ -z "$EC2_HOST" ]; then
-            echo "ERROR: EC2_HOST no está configurada"
-            exit 1
-          fi
+          echo "Configuración correcta"
 
-          if [ -z "$EC2_USER" ]; then
-            echo "ERROR: EC2_USER no está configurada"
-            exit 1
-          fi
 
-          echo "Variables configuradas correctamente"
+      - name: Configurar credenciales AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+
+      - name: Iniciar sesión en Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
 
       - name: Configurar Docker Builder de Blacksmith
@@ -116,104 +136,31 @@ jobs:
           cache-key: Dockerfile
 
 
-      - name: Construir imagen Docker
+      - name: Preparar etiquetas
+        id: docker-tags
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+        run: |
+          {
+            echo "tags<<EOF"
+            echo "${ECR_REGISTRY}/${ECR_REPOSITORY}:${GITHUB_REF_NAME}"
+            echo "${ECR_REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA}"
+
+            if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+              echo "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+            fi
+
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+
+      - name: Construir y publicar imagen Docker
         uses: useblacksmith/build-push-action@v2
         with:
           context: .
-          load: true
-          tags: proyecto-2-capacitacion:ec2
+          push: true
+          tags: ${{ steps.docker-tags.outputs.tags }}
           build-args: |
             NEXT_PUBLIC_CONVEX_URL=${{ vars.NEXT_PUBLIC_CONVEX_URL }}
             NEXT_PUBLIC_CONVEX_SITE_URL=${{ vars.NEXT_PUBLIC_CONVEX_SITE_URL }}
-
-
-      - name: Verificar imagen Docker
-        run: |
-          docker images proyecto-2-capacitacion
-
-          docker image inspect proyecto-2-capacitacion:ec2 > /dev/null
-
-          echo "Imagen Docker construida correctamente"
-
-
-      - name: Preparar conexión SSH
-        env:
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          EC2_HOST: ${{ vars.EC2_HOST }}
-        run: |
-          mkdir -p ~/.ssh
-
-          echo "$EC2_SSH_KEY" > ~/.ssh/ec2.pem
-
-          chmod 600 ~/.ssh/ec2.pem
-
-          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
-
-
-      - name: Exportar imagen Docker
-        run: |
-          docker save \
-            proyecto-2-capacitacion:ec2 \
-            -o proyecto-2-capacitacion.tar
-
-
-      - name: Copiar imagen Docker a EC2
-        env:
-          EC2_HOST: ${{ vars.EC2_HOST }}
-          EC2_USER: ${{ vars.EC2_USER }}
-        run: |
-          scp \
-            -i ~/.ssh/ec2.pem \
-            proyecto-2-capacitacion.tar \
-            "$EC2_USER@$EC2_HOST:/tmp/proyecto-2-capacitacion.tar"
-
-
-      - name: Desplegar aplicación en EC2
-        env:
-          EC2_HOST: ${{ vars.EC2_HOST }}
-          EC2_USER: ${{ vars.EC2_USER }}
-        run: |
-          ssh \
-            -i ~/.ssh/ec2.pem \
-            "$EC2_USER@$EC2_HOST" << 'EOF'
-
-          set -e
-
-          echo "Cargando nueva imagen..."
-
-          sudo docker load \
-            -i /tmp/proyecto-2-capacitacion.tar
-
-
-          echo "Eliminando contenedor anterior..."
-
-          sudo docker rm \
-            -f proyecto-2 \
-            2>/dev/null || true
-
-
-          echo "Iniciando nuevo contenedor..."
-
-          sudo docker run \
-            -d \
-            --name proyecto-2 \
-            --restart unless-stopped \
-            -p 3000:3000 \
-            proyecto-2-capacitacion:ec2
-
-
-          echo "Eliminando archivo temporal..."
-
-          rm -f /tmp/proyecto-2-capacitacion.tar
-
-
-          echo "Limpiando imágenes Docker antiguas..."
-
-          sudo docker image prune -f
-
-
-          echo "Contenedores activos:"
-
-          sudo docker ps
-
-          EOF
