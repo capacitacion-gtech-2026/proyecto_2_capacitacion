@@ -35,7 +35,10 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="mt-10 max-w-3xl">
+        <nav
+          aria-label="Módulos del inventario"
+          className="mt-10 max-w-3xl"
+        >
           <p className="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-600">
             Módulos
           </p>
@@ -104,7 +107,7 @@ export default function Home() {
               <ArrowRight className="size-4 text-zinc-500 transition-colors group-hover:text-zinc-200" />
             </Link>
           </div>
-        </div>
+        </nav>
       </main>
     </div>
   );
