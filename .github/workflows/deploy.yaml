@@ -1,18 +1,47 @@
-name: CI
+name: CI con Blacksmith
 
 on:
   push:
     branches:
       - main
+      - docker-ECR
+
   pull_request:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  lint:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+  quality:
+    name: ${{ matrix.name }}
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Lint
+            command: pnpm run lint
+
+          - name: Typecheck
+            command: pnpm exec tsc --noEmit
+
+          - name: Tests
+            command: pnpm run test
+
+          - name: Build
+            command: pnpm run build
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
 
       - name: Instalar pnpm
         uses: pnpm/action-setup@v4
@@ -26,96 +55,112 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
-      - name: Ejecutar Lint
-        run: pnpm run lint
+      - name: Ejecutar ${{ matrix.name }}
+        run: ${{ matrix.command }}
 
-  typecheck:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Instalar pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "pnpm"
-
-      - name: Instalar dependencias
-        run: pnpm install --frozen-lockfile
-
-      - name: Ejecutar Typecheck
-        run: pnpm exec tsc --noEmit
-
-  tests:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Instalar pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "pnpm"
-
-      - name: Instalar dependencias
-        run: pnpm install --frozen-lockfile
-
-      - name: Ejecutar Tests
-        run: pnpm run test
-
-  build:
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Instalar pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "pnpm"
-
-      - name: Instalar dependencias
-        run: pnpm install --frozen-lockfile
-
-      - name: Ejecutar Build
-        run: pnpm run build
 
   docker:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs:
-      - lint
-      - typecheck
-      - tests
-      - build
-    runs-on: ubuntu-latest
+    name: Construir y publicar imagen en ECR
+
+    if: github.event_name == 'push'
+
+    needs: quality
+
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+
+    timeout-minutes: 30
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
 
-      - name: Configurar Docker Buildx
-        uses: docker/setup-buildx-action@v4
 
-      - name: Iniciar sesion en Docker Hub
-        uses: docker/login-action@v4
+      - name: Verificar configuración
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          NEXT_PUBLIC_CONVEX_URL: ${{ vars.NEXT_PUBLIC_CONVEX_URL }}
+          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ vars.NEXT_PUBLIC_CONVEX_SITE_URL }}
+        run: |
+          if [ -z "$AWS_ACCESS_KEY_ID" ]; then
+            echo "ERROR: AWS_ACCESS_KEY_ID no está configurado"
+            exit 1
+          fi
+
+          if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "ERROR: AWS_SECRET_ACCESS_KEY no está configurado"
+            exit 1
+          fi
+
+          if [ -z "$AWS_REGION" ]; then
+            echo "ERROR: AWS_REGION no está configurada"
+            exit 1
+          fi
+
+          if [ -z "$ECR_REPOSITORY" ]; then
+            echo "ERROR: ECR_REPOSITORY no está configurado"
+            exit 1
+          fi
+
+          if [ -z "$NEXT_PUBLIC_CONVEX_URL" ]; then
+            echo "ERROR: NEXT_PUBLIC_CONVEX_URL no está configurada"
+            exit 1
+          fi
+
+          if [ -z "$NEXT_PUBLIC_CONVEX_SITE_URL" ]; then
+            echo "ERROR: NEXT_PUBLIC_CONVEX_SITE_URL no está configurada"
+            exit 1
+          fi
+
+          echo "Configuración correcta"
+
+
+      - name: Configurar credenciales AWS
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+
+      - name: Iniciar sesión en Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+
+      - name: Configurar Docker Builder de Blacksmith
+        uses: useblacksmith/setup-docker-builder@v2
+        with:
+          cache-key: Dockerfile
+
+
+      - name: Preparar etiquetas
+        id: docker-tags
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+        run: |
+          {
+            echo "tags<<EOF"
+            echo "${ECR_REGISTRY}/${ECR_REPOSITORY}:${GITHUB_REF_NAME}"
+            echo "${ECR_REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA}"
+
+            if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+              echo "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+            fi
+
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
 
       - name: Construir y publicar imagen Docker
-        uses: docker/build-push-action@v7
+        uses: useblacksmith/build-push-action@v2
         with:
           context: .
           push: true
-          tags: |
-            ${{ vars.DOCKERHUB_USERNAME }}/proyecto-2-capacitacion:latest
-            ${{ vars.DOCKERHUB_USERNAME }}/proyecto-2-capacitacion:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ steps.docker-tags.outputs.tags }}
+          build-args: |
+            NEXT_PUBLIC_CONVEX_URL=${{ vars.NEXT_PUBLIC_CONVEX_URL }}
+            NEXT_PUBLIC_CONVEX_SITE_URL=${{ vars.NEXT_PUBLIC_CONVEX_SITE_URL }}
