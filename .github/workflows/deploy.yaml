@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   quality:
@@ -58,102 +58,100 @@ jobs:
       - name: Ejecutar ${{ matrix.name }}
         run: ${{ matrix.command }}
 
-
   docker:
     name: Construir y publicar imagen en ECR
-
     if: github.event_name == 'push'
-
     needs: quality
-
     runs-on: blacksmith-2vcpu-ubuntu-2404
-
     timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      image_uri: ${{ steps.image.outputs.image_uri }}
 
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
 
+      - name: Instalar Doppler CLI
+        uses: dopplerhq/cli-action@v3
 
-      - name: Verificar configuración
+      - name: Cargar y validar configuración desde Doppler
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: >-
+          bash scripts/load-doppler-env.sh
+          AWS_ACCOUNT_ID
+          AWS_REGION
+          AWS_DEPLOY_ROLE_ARN
+          ECR_REPOSITORY
+          EC2_NAME_TAG
+          NEXT_PUBLIC_CONVEX_URL
+          NEXT_PUBLIC_CONVEX_SITE_URL
+          CONVEX_DEPLOYMENT
 
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-          NEXT_PUBLIC_CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL }}
-          NEXT_PUBLIC_CONVEX_SITE_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_SITE_URL }}
-        run: |
-          if [ -z "$AWS_ACCESS_KEY_ID" ]; then
-            echo "ERROR: AWS_ACCESS_KEY_ID no está configurado"
-            exit 1
-          fi
-
-          if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-            echo "ERROR: AWS_SECRET_ACCESS_KEY no está configurado"
-            exit 1
-          fi
-
-          if [ -z "$AWS_REGION" ]; then
-            echo "ERROR: AWS_REGION no está configurada"
-            exit 1
-          fi
-
-          if [ -z "$ECR_REPOSITORY" ]; then
-            echo "ERROR: ECR_REPOSITORY no está configurado"
-            exit 1
-          fi
-
-          if [ -z "$NEXT_PUBLIC_CONVEX_URL" ]; then
-            echo "ERROR: NEXT_PUBLIC_CONVEX_URL no está configurada"
-            exit 1
-          fi
-
-          if [ -z "$NEXT_PUBLIC_CONVEX_SITE_URL" ]; then
-            echo "ERROR: NEXT_PUBLIC_CONVEX_SITE_URL no está configurada"
-            exit 1
-          fi
-
-          echo "Configuración correcta"
-
-
-      - name: Configurar credenciales AWS
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Configurar credenciales temporales de AWS con OIDC
+        uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_DEPLOY_ROLE_ARN }}
+          role-session-name: github-${{ github.run_id }}-${{ github.job }}
+          aws-region: ${{ env.AWS_REGION }}
+          allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
+
+      - name: Confirmar cuenta, región y repositorio ECR
+        id: image
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          current_account="$(aws sts get-caller-identity --query Account --output text)"
+          if [[ "$current_account" != "$AWS_ACCOUNT_ID" ]]; then
+            echo "ERROR: la sesión AWS pertenece a una cuenta inesperada"
+            exit 1
+          fi
+
+          expected_repository_uri="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}"
+          repository_uri="$(
+            aws ecr describe-repositories \
+              --region "$AWS_REGION" \
+              --repository-names "$ECR_REPOSITORY" \
+              --query 'repositories[0].repositoryUri' \
+              --output text
+          )"
+
+          if [[ "$repository_uri" != "$expected_repository_uri" ]]; then
+            echo "ERROR: el ECR no coincide con la cuenta y región configuradas"
+            exit 1
+          fi
+
+          echo "ECR confirmado en ${AWS_REGION}"
+          echo "image_uri=${repository_uri}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Iniciar sesión en Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-
 
       - name: Configurar Docker Builder de Blacksmith
         uses: useblacksmith/setup-docker-builder@v2
         with:
           cache-key: Dockerfile
 
-
       - name: Preparar etiquetas
         id: docker-tags
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        shell: bash
         run: |
           {
             echo "tags<<EOF"
-            echo "${ECR_REGISTRY}/${ECR_REPOSITORY}:${GITHUB_REF_NAME}"
-            echo "${ECR_REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA}"
+            echo "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${GITHUB_REF_NAME}"
+            echo "${{ steps.image.outputs.image_uri }}"
 
-            if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
-              echo "${ECR_REGISTRY}/${ECR_REPOSITORY}:latest"
+            if [[ "$GITHUB_REF_NAME" == "main" ]]; then
+              echo "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:latest"
             fi
 
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
-
 
       - name: Construir y publicar imagen Docker
         uses: useblacksmith/build-push-action@v2
@@ -162,5 +160,147 @@ jobs:
           push: true
           tags: ${{ steps.docker-tags.outputs.tags }}
           build-args: |
-              NEXT_PUBLIC_CONVEX_URL=${{ secrets.NEXT_PUBLIC_CONVEX_URL }}
-              NEXT_PUBLIC_CONVEX_SITE_URL=${{ secrets.NEXT_PUBLIC_CONVEX_SITE_URL }}
+            NEXT_PUBLIC_CONVEX_URL=${{ env.NEXT_PUBLIC_CONVEX_URL }}
+            NEXT_PUBLIC_CONVEX_SITE_URL=${{ env.NEXT_PUBLIC_CONVEX_SITE_URL }}
+
+  deploy-staging:
+    name: Desplegar y verificar staging
+    needs: docker
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      instance_id: ${{ steps.instance.outputs.instance_id }}
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Cargar y validar configuración desde Doppler
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: >-
+          bash scripts/load-doppler-env.sh
+          AWS_ACCOUNT_ID
+          AWS_REGION
+          AWS_DEPLOY_ROLE_ARN
+          ECR_REPOSITORY
+          EC2_NAME_TAG
+          NEXT_PUBLIC_CONVEX_URL
+          NEXT_PUBLIC_CONVEX_SITE_URL
+          CONVEX_DEPLOYMENT
+
+      - name: Configurar credenciales temporales de AWS con OIDC
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: ${{ env.AWS_DEPLOY_ROLE_ARN }}
+          role-session-name: github-${{ github.run_id }}-${{ github.job }}
+          aws-region: ${{ env.AWS_REGION }}
+          allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
+
+      - name: Validar imagen construida
+        shell: bash
+        env:
+          IMAGE_URI: ${{ needs.docker.outputs.image_uri }}
+        run: |
+          set -Eeuo pipefail
+          expected_image="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${GITHUB_SHA}"
+
+          if [[ "$IMAGE_URI" != "$expected_image" ]]; then
+            echo "ERROR: la imagen a desplegar no corresponde al SHA actual"
+            exit 1
+          fi
+
+      - name: Localizar la única EC2 de aplicación
+        id: instance
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          instance_ids="$(
+            aws ec2 describe-instances \
+              --region "$AWS_REGION" \
+              --filters \
+                "Name=tag:Name,Values=${EC2_NAME_TAG}" \
+                "Name=instance-state-name,Values=running" \
+              --query 'Reservations[].Instances[].InstanceId' \
+              --output text
+          )"
+
+          read -r -a instances <<< "$instance_ids"
+          if [[ "${#instances[@]}" -ne 1 ]]; then
+            echo "ERROR: se esperaba exactamente una EC2 running con Name=${EC2_NAME_TAG}; se encontraron ${#instances[@]}"
+            exit 1
+          fi
+
+          echo "instance_id=${instances[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Desplegar staging mediante Systems Manager
+        env:
+          INSTANCE_ID: ${{ steps.instance.outputs.instance_id }}
+          IMAGE_URI: ${{ needs.docker.outputs.image_uri }}
+        run: >-
+          bash scripts/deploy-via-ssm.sh
+          "$INSTANCE_ID"
+          "$IMAGE_URI"
+          app-staging
+          3001
+          "$AWS_REGION"
+
+  deploy-production:
+    name: Desplegar y verificar producción
+    if: github.ref == 'refs/heads/main'
+    needs:
+      - docker
+      - deploy-staging
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Cargar y validar configuración desde Doppler
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: >-
+          bash scripts/load-doppler-env.sh
+          AWS_ACCOUNT_ID
+          AWS_REGION
+          AWS_DEPLOY_ROLE_ARN
+          ECR_REPOSITORY
+          EC2_NAME_TAG
+          NEXT_PUBLIC_CONVEX_URL
+          NEXT_PUBLIC_CONVEX_SITE_URL
+          CONVEX_DEPLOYMENT
+
+      - name: Configurar credenciales temporales de AWS con OIDC
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: ${{ env.AWS_DEPLOY_ROLE_ARN }}
+          role-session-name: github-${{ github.run_id }}-${{ github.job }}
+          aws-region: ${{ env.AWS_REGION }}
+          allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
+
+      - name: Desplegar la imagen probada en producción mediante Systems Manager
+        env:
+          INSTANCE_ID: ${{ needs.deploy-staging.outputs.instance_id }}
+          IMAGE_URI: ${{ needs.docker.outputs.image_uri }}
+        run: >-
+          bash scripts/deploy-via-ssm.sh
+          "$INSTANCE_ID"
+          "$IMAGE_URI"
+          app-production
+          3000
+          "$AWS_REGION"
